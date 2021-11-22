@@ -27,3 +27,7 @@ Using the [Recaf-Disassembler](https://github.com/Nowilltolife/Recaf-Disassembly
 To contribute feel free to fork the project and make a pull request.
 If you have any questions or suggestions feel free to open an issue.
 On bug reports please include the disassembly file and the disassembly output. (if possible)
+
+### Resources
+Having trouble understanding the architecure or want to develop your own decoder or implementation of the x86 set?
+Head over to [Resources](RESOURCES.md) to find the resources i used to develop this program
