@@ -11,12 +11,12 @@ These features are only partially implemented and are stated in `goals` further 
 * Data references with strings view
 
 ### Goals
-[ ] Finish the x86 instruction set
-[ ] Add support for 16-bit x86
-[ ] Create cross-references / Function references
-[ ] Create labels for jumps
-[ ] Create data references and string links
-[ ] Support for loading ELF / PE segments directly for better overview
+- [ ] Finish the x86 instruction set
+- [ ] Add support for 16-bit x86
+- [ ] Create cross-references / Function references
+- [ ] Create labels for jumps
+- [ ] Create data references and string links
+- [ ] Support for loading ELF / PE segments directly for better overview
 
 ### Graphical User Interface
 The disassembler has graphical implementation in the [Recaf](https://github.com/Col-E/Recaf) project.
