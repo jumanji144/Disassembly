@@ -31,3 +31,6 @@ On bug reports please include the disassembly file and the disassembly output. (
 ### Resources
 Having trouble understanding the architecure or want to develop your own decoder or implementation of the x86 set?
 Head over to [Resources](RESOURCES.md) to find the resources i used to develop this program
+
+### Process
+The process of the disassembler is described in the [Process](PROCESS.md) section
