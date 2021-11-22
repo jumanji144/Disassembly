@@ -20,7 +20,7 @@ These features are only partially implemented and are stated in `goals` further 
 
 ### Graphical User Interface
 The disassembler has graphical implementation in the [Recaf](https://github.com/Col-E/Recaf) project.
-Using the [Recaf-Disassembler](https://github.com/Nowilltolife/Recaf-Disassembler) fork which implements the features declared.
+Using the [Recaf-Disassembler](https://github.com/Nowilltolife/Recaf-Disassembly) fork which implements the features declared.
 
 
 ### Contributing
