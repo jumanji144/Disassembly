@@ -1,5 +1,9 @@
 package un.darknet.disassembly;
 
+import un.darknet.disassembly.exception.DisassemblerException;
+
+import java.io.IOException;
+
 public interface PlatformDisassembler {
 
 
@@ -14,11 +18,13 @@ public interface PlatformDisassembler {
     Architecture getArchitecture();
 
     /**
-     * Pass in bytes to disassembler and get back a disassembled instructions
-     * @param bytes the source bytes
+     * Pass in a program and it will be disassembled.
+     * This method builds the instructions but also directly resolves labels.
+     *
+     * @param program the program to disassemble
      * @param start the start offset
      * @param length how much to disassemble
-     * @return the disassembled instructions
      */
-    Instruction[] disassemble(byte[] bytes, int start, int length);
+    void process(Program program, int start, int length) throws IOException;
+
 }

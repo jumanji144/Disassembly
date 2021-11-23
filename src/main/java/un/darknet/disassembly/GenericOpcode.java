@@ -41,6 +41,9 @@ public class GenericOpcode implements Opcode {
 
     @Override
     public String toString() {
+        if(operands == null || operands.isEmpty())
+            return mnemonic;
+
         return String.format("%s %s", mnemonic, operands);
     }
 }
