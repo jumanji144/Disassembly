@@ -1,7 +1,12 @@
 package un.darknet.disassembly.x86_64;
 
+import lombok.SneakyThrows;
+import me.martinez.pe.io.CadesBufferStream;
+import me.martinez.pe.io.LittleEndianReader;
 import un.darknet.disassembly.*;
+import un.darknet.disassembly.exception.DisassemblerException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
@@ -10,8 +15,8 @@ public class X86_64Disassembler implements PlatformDisassembler {
 
     String mnemonic;
     int opcode;
-    String operand;
-    String outOperand;
+    String operand = "";
+    String outOperand = "";
     Stack<String> stack = new Stack<>();
     Stack<Integer> numStack = new Stack<>();
     byte[] bytes;
@@ -19,8 +24,18 @@ public class X86_64Disassembler implements PlatformDisassembler {
     boolean lockPrefix;
     boolean repeatPrefix;
     boolean repeatPrefixZero;
-    String segment;
+    String segment = "";
     boolean sizeOverride;
+
+    LittleEndianReader reader;
+    boolean instructionWasPrefix;
+
+    void stackSwap() {
+        String a = stack.pop();
+        String b = stack.pop();
+        stack.push(a);
+        stack.push(b);
+    }
 
 
     /**
@@ -54,6 +69,7 @@ public class X86_64Disassembler implements PlatformDisassembler {
 
         if(b >= Mnemonics.Mnemonics.length) {
             mnemonic = "UNKNOWN";
+            operand = "";
             return;
         }
 
@@ -62,6 +78,10 @@ public class X86_64Disassembler implements PlatformDisassembler {
         if(o instanceof String) {
 
             mnemonic = (String) o;
+
+            if(mnemonic.equals("PREFIX"))
+                instructionWasPrefix = true;
+
             operand = Operations.ops[b];
 
         }else {
@@ -73,63 +93,91 @@ public class X86_64Disassembler implements PlatformDisassembler {
 
     }
 
+    public String buildMem(String register, long displacement, int size) {
+
+        String toFormat = "";
+
+        if(!segment.isEmpty())
+            toFormat += segment + ":[";
+        else
+            toFormat += "[";
+
+        if(!register.isEmpty())
+            toFormat += "%s + ";
+
+        if(displacement != 0)
+            toFormat += "0x%0" + size + "X";
+
+        toFormat += "]";
+
+        if(register.isEmpty())
+            return String.format(toFormat, displacement);
+
+        if(displacement == 0)
+            return String.format(toFormat, register);
+
+        return String.format(toFormat, register, displacement);
+    }
+
+    @SneakyThrows
     public void decodeREGRM(int val) {
 
-        boolean size = (opcode & 0x01) == 0x01;
-        boolean direction = (opcode & 0x02) == 0x02;
+        // [opcode]0 0  00  000 000
+        //         s d  mod reg r/m
 
-        boolean r = (val & 0x80) == 0x80; // last bit
-        boolean m = (val & 0x40) == 0x40; // second last bit
+         boolean s = (opcode & 0x01) == 0x01;
+        boolean d = (opcode & 0x02) == 0x02;
 
+        int mod = (val & 0xC0) >> 6;
         int reg = (val & 0x38) >> 3;
         int rm = val & 0x07;
 
-        int regMode = size ? 2 : 0;
-        if(sizeOverride) regMode = 1;
+        boolean disp = mod == 0 && rm == 5;
 
-        String regStr = decodeRegister(reg, regMode);
-        String rmStr = decodeRegister(rm, regMode);
+        int regSize = s ? 2 : 0;
+        if(sizeOverride) regSize = 1;
 
-        String reg1 = direction ? rmStr : regStr;
-        String reg2 = direction ? regStr : rmStr;
+        String register = decodeRegister(reg, regSize);
 
-        if(r) {
+        stack.push(register);
 
-            if(m) {
+        if(mod == 3) { // rm is a register
 
-                stack.push(reg1);
+            register = decodeRegister(rm, regSize);
 
-            }else {
-
-                // read displacement
-                long n = readBytes(4);
-                stack.push(String.format("[%s + 0x%X]", reg1, n));
-
-
-            }
-
-        }else {
-
-            if(m) {
-
-                // read displacement
-                long n = readBytes(1);
-                stack.push(String.format("[%s + 0x%X]", reg1, n));
-
-            }else {
-
-                stack.push(String.format("[%s]", decodeRegister(rm, size ? 2 : 0)));
-
-            }
+            stack.push(register);
 
         }
 
-        stack.push(reg2);
+        if(mod == 0 && disp) { // displacement 4 bytes after
 
+            long displacement = reader.readDword();
+            stack.push(buildMem("", displacement, 4));
+
+        } else if (mod == 0) {
+
+            register = decodeRegister(rm, regSize);
+
+            stack.push(buildMem(register, 0, 0));
+
+        }
+
+        if(mod == 1 || mod == 2) { // 8 bit displacement
+
+            long displacement = mod == 1 ? reader.readByte() : reader.readDword();
+            register = decodeRegister(rm, regSize);
+            stack.push(buildMem(register, displacement, 1));
+
+        }
+
+        if(d) {
+            stackSwap();
+        }
     }
 
 
 
+    @SneakyThrows
     public void decodeOperand(String operand) {
 
         if(operand == null) {
@@ -145,7 +193,7 @@ public class X86_64Disassembler implements PlatformDisassembler {
 
             if(c == 'R') { // Read 2 Register
 
-                decodeREGRM(bytes[++index] & 0xFF);
+                decodeREGRM(reader.readByte());
 
             }
 
@@ -162,13 +210,19 @@ public class X86_64Disassembler implements PlatformDisassembler {
 
                 int size = numStack.pop();
 
-                // load immediate
-                long n = 0;
-                for (int i = 0; i < size; i++) {
-                    n += (long) (bytes[++index] & 0xFF) << (i * 8);
-                }
+                long n;
+                if(size == 1) n = reader.readByte();
+                else if(size == 2) n = reader.readWord();
+                else n = reader.readDword();
+
 
                 stack.push(String.format("0x%X", n));
+
+            }
+
+            if(c == 'I') {
+
+
 
             }
 
@@ -178,6 +232,13 @@ public class X86_64Disassembler implements PlatformDisassembler {
                 String elem2 = stack.pop();
 
                 outOperand = elem1 + ", " + elem2;
+
+            }
+
+            if(c == 'S') {
+
+                int index = numStack.pop();
+                segment = Constants.SEGMENTS[index];
 
             }
 
@@ -191,28 +252,31 @@ public class X86_64Disassembler implements PlatformDisassembler {
 
     }
 
-    /**
-     * Pass in bytes to disassembler and get back a disassembled instructions
-     *
-     * @param bytes      the source bytes
-     * @param start      the start offset
-     * @param length     how much to disassemble
-     * @return the disassembled instructions
-     */
+
+    @SneakyThrows
     @Override
-    public Instruction[] disassemble(byte[] bytes, int start, int length) {
+    public void process(Program program, int start, int length)  {
 
-        this.bytes = bytes;
+        this.bytes = program.code;
 
-        List<Instruction> instructions = new ArrayList<>();
+        reader = new LittleEndianReader(new CadesBufferStream(bytes, start, length));
+        while(reader.getStream().getPos() < length) {
 
-        index = start;
-        while(index < length) {
-
-            opcode = bytes[index] & 0xFF;
+            opcode = reader.readByte();
 
             decodeOpcode(opcode);
             decodeOperand(operand);
+
+            if(instructionWasPrefix) {
+
+                instructionWasPrefix = false;
+                // if instruction was prefix, we need to read next byte
+                continue;
+
+            }
+
+            // reset segment override
+            segment = "";
 
             GenericOpcode opcode = new GenericOpcode(mnemonic, outOperand, 1);
 
@@ -220,14 +284,15 @@ public class X86_64Disassembler implements PlatformDisassembler {
             mnemonic = "";
 
             Instruction instruction = new Instruction(index, opcode);
-            instructions.add(instruction);
+            program.addInstruction(instruction);
 
             index++;
 
 
         }
 
-        return instructions.toArray(new Instruction[0]);
 
     }
+
+
 }
