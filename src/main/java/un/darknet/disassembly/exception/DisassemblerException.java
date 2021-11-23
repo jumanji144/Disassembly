@@ -1,6 +1,13 @@
 package un.darknet.disassembly.exception;
 
-import java.io.IOException;
+public class DisassemblerException extends RuntimeException {
 
-public class DisassemblerException extends IOException {
+    public DisassemblerException() {
+        super();
+    }
+
+    public DisassemblerException(String message) {
+        super(message);
+    }
+
 }

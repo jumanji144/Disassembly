@@ -1,4 +1,4 @@
-package un.darknet.disassembly.x86_64;
+package un.darknet.disassembly.X86;
 
 import lombok.SneakyThrows;
 import me.martinez.pe.io.CadesBufferStream;
@@ -6,12 +6,9 @@ import me.martinez.pe.io.LittleEndianReader;
 import un.darknet.disassembly.*;
 import un.darknet.disassembly.exception.DisassemblerException;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Stack;
 
-public class X86_64Disassembler implements PlatformDisassembler {
+public class X86Disassembler implements PlatformDisassembler {
 
     String mnemonic;
     int opcode;
@@ -30,6 +27,15 @@ public class X86_64Disassembler implements PlatformDisassembler {
     LittleEndianReader reader;
     boolean instructionWasPrefix;
 
+    byte currentBitSize;
+    public static final byte DEF_BIT_SIZE = Bits.BITS_32;
+
+    public X86Disassembler() {
+
+        setBits(DEF_BIT_SIZE);
+
+    }
+
     void stackSwap() {
         String a = stack.pop();
         String b = stack.pop();
@@ -37,6 +43,41 @@ public class X86_64Disassembler implements PlatformDisassembler {
         stack.push(b);
     }
 
+
+    /**
+     * Returns if the disassembler supports the bit size.
+     * {@link Bits#atLeast(byte, byte)}
+     *
+     * @param bits the bit size
+     * @return true if the disassembler supports the bit size
+     */
+    @Override
+    public boolean supports(byte bits) {
+        return Bits.atMost(bits, Bits.BITS_64);
+    }
+
+    /**
+     * Attempt to set the disassembler's bit size.
+     *
+     * @param bits the bit size
+     * @throws DisassemblerException if the disassembler does not support the bit size
+     */
+    @Override
+    public void setBits(byte bits) throws DisassemblerException {
+        if(!supports(bits))
+            throw new DisassemblerException("Disassembler does not support " + Bits.friendlyName(bits));
+        currentBitSize = bits;
+    }
+
+    /**
+     * Return the current bit size of the disassembler.
+     *
+     * @return the bit size
+     */
+    @Override
+    public byte getBits() {
+        return currentBitSize;
+    }
 
     /**
      * @return The disassembler's endianness.
@@ -51,7 +92,7 @@ public class X86_64Disassembler implements PlatformDisassembler {
      */
     @Override
     public Architecture getArchitecture() {
-        return Architecture.X86_64;
+        return Architecture.X86;
     }
 
     long readBytes(int size) {
@@ -220,9 +261,15 @@ public class X86_64Disassembler implements PlatformDisassembler {
 
             }
 
-            if(c == 'I') {
+            if(c == 'I' || c == 'D') {
 
+                int reg = opcode & 0x07; // extract first 3 bits
 
+                int size = sizeOverride ? 1 : 2;
+
+                String register = decodeRegister(reg, size);
+
+                stack.push(register);
 
             }
 
@@ -242,6 +289,10 @@ public class X86_64Disassembler implements PlatformDisassembler {
 
             }
 
+        }
+
+        if(stack.size() > 0) { // if stack is not empty, then there is an operand
+            outOperand = stack.pop();
         }
 
     }

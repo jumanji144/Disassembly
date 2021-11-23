@@ -3,7 +3,7 @@ package un.darknet.disassembly;
 
 public enum Architecture {
 
-    X86_64,
+    X86,
     UNKNOWN;
 
     public static Architecture fromString(String name) {

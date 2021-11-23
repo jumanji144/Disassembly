@@ -4,16 +4,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import un.darknet.disassembly.Architecture;
-import un.darknet.disassembly.Disassembler;
-import un.darknet.disassembly.Endianness;
-import un.darknet.disassembly.Instruction;
+import un.darknet.disassembly.*;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class X86Test {
 
@@ -22,7 +18,7 @@ public class X86Test {
     @BeforeAll
     static void setup() {
 
-        disassembler = new Disassembler(Architecture.X86_64, Endianness.LITTLE);
+        disassembler = new Disassembler(Architecture.X86, Endianness.LITTLE);
 
     }
 
@@ -37,30 +33,6 @@ public class X86Test {
                 Arguments.of("SUB", (byte) 0x29),
                 Arguments.of("XOR", (byte) 0x31),
                 Arguments.of("CMP", (byte) 0x39));
-
-    }
-
-    @Test
-    void generalTest() {
-
-        byte[] instructions = {
-                0x26, 0x03, 0x05, 0x56, 0x78, 0x56, 0x34 // add eax, [eax + 0x0a]
-        };
-
-        String[] expected = {
-                "ADD EAX, EBX",
-                "OR al, 5a",
-                "ADD EAX, 50604323",
-                "OR EAX, eax",
-        };
-
-        Instruction[] actual = disassembler.disassemble(instructions);
-
-        for (Instruction instruction : actual) {
-
-            System.out.println(instruction.opcode.toString());
-
-        }
 
     }
 
@@ -124,6 +96,30 @@ public class X86Test {
 
     }
 
+    @Test
+    void generalTest() {
+
+        byte[] instructions = {
+                0x26, 0x03, 0x05, 0x56, 0x78, 0x56, 0x34 // add eax, [eax + 0x0a]
+        };
+
+        String[] expected = {
+                "ADD EAX, EBX",
+                "OR al, 5a",
+                "ADD EAX, 50604323",
+                "OR EAX, eax",
+        };
+
+        Instruction[] actual = disassembler.disassemble(instructions);
+
+        for (Instruction instruction : actual) {
+
+            System.out.println(instruction.opcode.toString());
+
+        }
+
+    }
+
     @ParameterizedTest
     @MethodSource("getAllRegRMInstructions")
     void testRegModRM(String expectedOp, byte prefix) {
@@ -147,6 +143,27 @@ public class X86Test {
                 "ADD EAX, ES:[0x34567856]",
                 "ADD EAX, CS:[0x34567856]",
                 "ADD EAX, SS:[0x34567856]"
+        };
+
+        common(instructions, expected);
+
+    }
+
+    @Test
+    public void testIncDec32() {
+
+        disassembler.setBits(Bits.BITS_32);
+
+        byte[] instructions = {
+                0x40, // INC EAX
+                0x48, // DEC EAX
+        };
+
+        String[] expected = {
+
+                "INC EAX",
+                "DEC EAX"
+
         };
 
         common(instructions, expected);
@@ -182,7 +199,6 @@ public class X86Test {
         };
 
         common(instructions, expected);
-
 
 
     }

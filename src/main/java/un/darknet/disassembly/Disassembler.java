@@ -1,16 +1,22 @@
 package un.darknet.disassembly;
 
-import un.darknet.disassembly.exception.DisassemblerException;
-import un.darknet.disassembly.x86_64.X86_64Disassembler;
+import lombok.SneakyThrows;
+import un.darknet.disassembly.X86.X86Disassembler;
 
 public class Disassembler {
 
     private final Architecture architecture;
     private final Endianness endianness;
+    private PlatformDisassembler backend;
 
     public Disassembler(Architecture architecture, Endianness endianness) {
         this.architecture = architecture;
         this.endianness = endianness;
+        switch (architecture) {
+            case X86: {
+                backend = new X86Disassembler();
+            }
+        }
     }
 
     public Architecture getArchitecture() {
@@ -21,24 +27,29 @@ public class Disassembler {
         return endianness;
     }
 
+    public void setBits(byte bits) {
+        backend.setBits(bits);
+    }
+
+    public boolean bitsAreAtLeast(byte bits) {
+
+        return Bits.atLeast(backend.getBits(), bits);
+
+    }
+
+    public boolean bitsAreAtMost(byte bits) {
+
+        return Bits.atMost(backend.getBits(), bits);
+
+    }
+
+    @SneakyThrows
     public Instruction[] disassemble(byte[] code) {
         Program program = Program.withCode(code);
 
-        switch (architecture) {
-            case X86_64: {
+        backend.process(program, 0, code.length);
 
-
-                X86_64Disassembler disassembler = new X86_64Disassembler();
-
-                disassembler.process(program, 0, code.length);
-
-                return program.instructions.toArray(new Instruction[0]);
-            }
-        }
-
-
-
-        return new Instruction[0];
+        return program.instructions.toArray(new Instruction[0]);
     }
 
 }

@@ -8,6 +8,27 @@ public interface PlatformDisassembler {
 
 
     /**
+     * Returns if the disassembler supports the bit size.
+     * {@link Bits#atLeast(byte, byte)}
+     * @param bits the bit size
+     * @return true if the disassembler supports the bit size
+     */
+    boolean supports(byte bits);
+
+    /**
+     * Attempt to set the disassembler's bit size.
+     * @param bits the bit size
+     * @throws DisassemblerException if the disassembler does not support the bit size
+     */
+    void setBits(byte bits) throws DisassemblerException;
+
+    /**
+     * Return the current bit size of the disassembler.
+     * @return the bit size
+     */
+    byte getBits();
+
+    /**
      * @return The disassembler's endianness.
      */
     Endianness getEndianness();

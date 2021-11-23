@@ -1,4 +1,4 @@
-package un.darknet.disassembly.x86_64;
+package un.darknet.disassembly.X86;
 
 public class Constants {
 

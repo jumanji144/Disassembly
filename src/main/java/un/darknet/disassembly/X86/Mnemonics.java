@@ -1,4 +1,4 @@
-package un.darknet.disassembly.x86_64;
+package un.darknet.disassembly.X86;
 
 /**
  * These are the opcodes for the x86_64 architecture.
