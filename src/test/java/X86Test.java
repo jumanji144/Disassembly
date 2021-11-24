@@ -4,10 +4,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import un.darknet.disassembly.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -40,11 +42,7 @@ public class X86Test {
 
         Instruction[] actual = disassembler.disassemble(instructions);
 
-        System.out.println("Actual:" + Arrays.toString(actual));
-
         assertEquals(expected.length, actual.length);
-
-        System.out.println("Expected:" + Arrays.toString(expected));
 
         for (int i = 0; i < actual.length; i++) {
             Assertions.assertEquals(expected[i], actual[i].toString());
@@ -96,11 +94,34 @@ public class X86Test {
 
     }
 
+    public static List<Arguments> getConditionalJumpData() {
+
+        return Arrays.asList(
+                Arguments.of(0x70, "JO"),
+                Arguments.of(0x71, "JNO"),
+                Arguments.of(0x72, "JB"),
+                Arguments.of(0x73, "JNB"),
+                Arguments.of(0x74, "JZ"),
+                Arguments.of(0x75, "JNZ"),
+                Arguments.of(0x76, "JBE"),
+                Arguments.of(0x77, "JNBE"),
+                Arguments.of(0x78, "JS"),
+                Arguments.of(0x79, "JNS"),
+                Arguments.of(0x7a, "JP"),
+                Arguments.of(0x7b, "JNP"),
+                Arguments.of(0x7c, "JL"),
+                Arguments.of(0x7d, "JNL"),
+                Arguments.of(0x7e, "JLE"),
+                Arguments.of(0x7f, "JNLE"));
+
+
+    }
+
     @Test
     void generalTest() {
 
         byte[] instructions = {
-                0x26, 0x03, 0x05, 0x56, 0x78, 0x56, 0x34 // add eax, [eax + 0x0a]
+                0x6B, (byte) 0xC1, 0x18  // add eax, [eax + 0x0a]
         };
 
         String[] expected = {
@@ -167,6 +188,39 @@ public class X86Test {
         };
 
         common(instructions, expected);
+
+    }
+
+    @Test
+    public void pushPopTest() {
+
+        disassembler.setBits(Bits.BITS_32);
+
+        byte[] instructions = {
+                0x50, // PUSH EAX
+                0x58, // POP EAX
+                0x68, 0x56, 0x34, 0x12, 0x46,// PUSH 0x123456
+                0x6A, 0x34, // PUSH 0x34
+        };
+
+        String[] expected = {
+
+                "PUSH EAX",
+                "POP EAX",
+                "PUSH 0x46123456",
+                "PUSH 0x34"
+
+        };
+
+        common(instructions, expected);
+
+    }
+
+    @ParameterizedTest
+    @MethodSource("getConditionalJumpData")
+    public void testConditionalJumps(int opcode, String expected) {
+
+        common(new byte[] {(byte)opcode, 0x10}, new String[] {expected + " 0x10"});
 
     }
 

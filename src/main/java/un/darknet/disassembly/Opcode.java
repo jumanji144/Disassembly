@@ -15,6 +15,6 @@ public interface Opcode {
     /**
      * @return The opcode size in bytes.
      */
-    int size();
+    long size();
 
 }

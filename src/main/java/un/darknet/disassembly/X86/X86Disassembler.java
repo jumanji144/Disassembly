@@ -53,7 +53,9 @@ public class X86Disassembler implements PlatformDisassembler {
      */
     @Override
     public boolean supports(byte bits) {
-        return Bits.atMost(bits, Bits.BITS_64);
+        if(bits == Bits.BITS_64)
+            return false;
+        return Bits.atMost(bits, Bits.BITS_32);
     }
 
     /**
@@ -261,7 +263,7 @@ public class X86Disassembler implements PlatformDisassembler {
 
             }
 
-            if(c == 'I' || c == 'D') {
+            if(c == 'U') {
 
                 int reg = opcode & 0x07; // extract first 3 bits
 
@@ -282,11 +284,34 @@ public class X86Disassembler implements PlatformDisassembler {
 
             }
 
+            if(c == 'o') {
+
+                stack.push(outOperand);
+
+            }
+
+            if(c == 's') {
+
+                stackSwap();
+
+            }
+
+            if(c == 'd') {
+
+
+
+            }
+
             if(c == 'S') {
 
                 int index = numStack.pop();
                 segment = Constants.SEGMENTS[index];
 
+            }
+
+            if(c == '-') {
+                sizeOverride = true;
+                instructionWasPrefix = true;
             }
 
         }
@@ -313,6 +338,8 @@ public class X86Disassembler implements PlatformDisassembler {
         reader = new LittleEndianReader(new CadesBufferStream(bytes, start, length));
         while(reader.getStream().getPos() < length) {
 
+            long startPos = reader.getStream().getPos();
+
             opcode = reader.readByte();
 
             decodeOpcode(opcode);
@@ -328,16 +355,21 @@ public class X86Disassembler implements PlatformDisassembler {
 
             // reset segment override
             segment = "";
+            sizeOverride = false;
 
-            GenericOpcode opcode = new GenericOpcode(mnemonic, outOperand, 1);
+            // size is the difference between start and end of instruction
+            long size = reader.getStream().getPos() - startPos;
+            long actualLocation = reader.getStream().getPos() + start;
+
+            System.out.println(size);
+
+            GenericOpcode opcode = new GenericOpcode(mnemonic, outOperand, size);
 
             outOperand = "";
             mnemonic = "";
 
-            Instruction instruction = new Instruction(index, opcode);
+            Instruction instruction = new Instruction(actualLocation, opcode);
             program.addInstruction(instruction);
-
-            index++;
 
 
         }

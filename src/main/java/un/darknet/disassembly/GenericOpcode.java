@@ -3,10 +3,10 @@ package un.darknet.disassembly;
 public class GenericOpcode implements Opcode {
 
     private final String mnemonic;
-    private final int size;
+    private final long size;
     private final String operands;
 
-    public GenericOpcode(String mnemonic, String operands, int size) {
+    public GenericOpcode(String mnemonic, String operands, long size) {
         
         this.mnemonic = mnemonic;
         this.operands = operands;
@@ -35,7 +35,7 @@ public class GenericOpcode implements Opcode {
      * @return The opcode size in bytes.
      */
     @Override
-    public int size() {
+    public long size() {
         return size;
     }
 

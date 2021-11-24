@@ -1,5 +1,8 @@
 package un.darknet.disassembly;
 
+import lombok.Data;
+
+@Data
 public class Instruction {
 
     public Instruction(long location, Opcode opcode) {
@@ -10,14 +13,6 @@ public class Instruction {
     public long location;
 
     public Opcode opcode;
-
-    public String getMnemonic() {
-        return opcode.mnemonic();
-    }
-
-    public String getOperands() {
-        return opcode.operands();
-    }
 
     @Override
     public String toString() {

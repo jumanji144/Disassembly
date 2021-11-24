@@ -29,6 +29,24 @@ public class Mnemonics {
             // REX PREFIX SPACE (in 32-bit mode is just inc instructions)
             "INC","INC","INC","INC","INC","INC","INC","INC",
             "DEC","DEC","DEC","DEC","DEC","DEC","DEC","DEC",
+            "PUSH","PUSH","PUSH","PUSH","PUSH","PUSH","PUSH","PUSH",
+            "POP","POP","POP","POP","POP","POP","POP","POP",
+            "PUSHA",
+            "POPA",
+            "PREFIX",
+            "PREFIX",
+            "PREFIX",
+            "PREFIX",
+            "PREFIX",
+            "PREFIX",
+            "PUSH",
+            "IMUL",
+            "PUSH",
+            "IMUL",
+            "INS", "INSB",
+            "OUTS","OUTSB",
+            "JO","JNO","JB","JNB","JZ","JNZ","JBE","JNBE",
+            "JS","JNS","JP","JNP","JL","JNL","JLE","JNLE",
 
 
     };
