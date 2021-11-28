@@ -7,11 +7,13 @@ import java.util.Map;
 
 public class OperandObject {
 
-    // cache for operand objects of type TYPE_REGISTER
-    public static final Map<String, OperandObject> registerObjectCache = new HashMap<>();
+    // object pool
+    public static final Map<Object, OperandObject> pool = new HashMap<>();
     // objects can only have 1 type
     public int type;
     public Object value;
+
+    public Label label; // used for label references
 
     public OperandObject(int type, Object value) {
         this.type = type;
@@ -19,16 +21,22 @@ public class OperandObject {
     }
 
     public static OperandObject forRegister(String register) {
-        OperandObject obj = registerObjectCache.get(register);
-        if (obj == null) {
-            obj = new OperandObject(Operand.TYPE_REGISTER, register);
-            registerObjectCache.put(register, obj);
-        }
-        return obj;
+        return forObj(register, Operand.TYPE_REGISTER);
     }
 
     public static OperandObject forImmediate(long value) {
-        return new OperandObject(Operand.TYPE_CONSTANT, value);
+        return forObj(value, Operand.TYPE_CONSTANT);
+    }
+
+    public static OperandObject forObj(Object value, int type) {
+
+        OperandObject obj = pool.get(value);
+        if (obj == null) {
+            obj = new OperandObject(type, value);
+            pool.put(value, obj);
+        }
+        return obj;
+
     }
 
 

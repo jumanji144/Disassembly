@@ -4,6 +4,7 @@ import un.darknet.disassembly.Bits;
 import un.darknet.disassembly.GenericOpcode;
 import un.darknet.disassembly.PlatformDisassembler;
 import un.darknet.disassembly.data.Instruction;
+import un.darknet.disassembly.data.InstructionType;
 import un.darknet.disassembly.decoding.Decoder;
 import un.darknet.disassembly.decoding.DecoderContext;
 import un.darknet.disassembly.operand.Operand;
@@ -284,7 +285,9 @@ public class X86Decoder extends Decoder {
 
         GenericOpcode op = new GenericOpcode(mnemonic, size, operands);
 
-        Instruction instruction = new Instruction(ctx.getAddress(), op);
+        InstructionType type = InstructionType.get(mnemonic);
+
+        Instruction instruction = new Instruction(ctx.getAddress(), op, type);
 
         ctx.setInstruction(instruction); // set the output
 
