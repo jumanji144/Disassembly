@@ -1,6 +1,6 @@
 package un.darknet.disassembly.operand;
 
-import un.darknet.disassembly.Label;
+import un.darknet.disassembly.labels.Label;
 
 import java.util.HashMap;
 import java.util.Map;

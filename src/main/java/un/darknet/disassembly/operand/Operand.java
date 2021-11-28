@@ -14,6 +14,11 @@ public class Operand {
     public static final int TYPE_MEMORY = 0b010; // only operand only type
 
     public int segment = -1; // used for memory operands
+
+    public OperandObject[] getObjects() {
+        return objects;
+    }
+
     public OperandObject[] objects;
     public Flags types;
 
@@ -42,7 +47,10 @@ public class Operand {
                 sb.append(object.value);
             } else if (object.type == TYPE_CONSTANT) {
                 long value = (long) object.value;
-                sb.append(String.format("0x%X", value));
+                if(object.label != null)
+                    sb.append(object.label);
+                else
+                    sb.append(String.format("0x%X", value));
             }
             sb.append(" + ");
         }

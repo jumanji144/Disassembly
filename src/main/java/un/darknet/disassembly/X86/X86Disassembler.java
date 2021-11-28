@@ -1,16 +1,20 @@
 package un.darknet.disassembly.X86;
 
-import me.martinez.pe.io.LittleEndianReader;
 import un.darknet.disassembly.Architecture;
 import un.darknet.disassembly.Bits;
 import un.darknet.disassembly.Endianness;
 import un.darknet.disassembly.PlatformDisassembler;
+import un.darknet.disassembly.data.Instruction;
 import un.darknet.disassembly.data.Program;
 import un.darknet.disassembly.decoding.DecoderContext;
 import un.darknet.disassembly.exception.DisassemblerException;
+import un.darknet.disassembly.labels.Label;
+import un.darknet.disassembly.labels.LabelType;
+import un.darknet.disassembly.operand.Operand;
+import un.darknet.disassembly.operand.OperandObject;
 
 import java.io.IOException;
-import java.util.Stack;
+import java.util.Map;
 
 public class X86Disassembler implements PlatformDisassembler {
 
@@ -93,13 +97,92 @@ public class X86Disassembler implements PlatformDisassembler {
 
         }
 
-        // resolve labels & resolve jumps
-        resolveLabels(program);
-
 
     }
 
-    private void resolveLabels(Program program) {
+    @Override
+    public Map<Long, Label> resolveLabels(Program program) {
+
+        // iterate over instructions
+        for (int i = 0; i < program.instructions.size(); i++) {
+
+            // get instruction
+            Instruction instruction = program.instructions.get(i);
+
+            // iterate over operands
+            for (Operand operand : instruction.getOperands()) {
+
+                // iterate over operand's objects
+                for (OperandObject object : operand.getObjects()) {
+
+                    if (object.type == Operand.TYPE_CONSTANT) { // is a constant reference
+
+                        long location;
+                        LabelType type = LabelType.UNKNOWN;
+
+                        switch (instruction.type) {
+
+                            case JUMP_RELATIVE: {
+
+                                location = instruction.location + instruction.getLength() + (long)object.value;
+                                type = LabelType.LABEL;
+                                break;
+
+                            }
+
+                            case JUMP: {
+
+                                location = (long) object.value;
+                                type = LabelType.LABEL;
+                                break;
+
+                            }
+
+                            case CALL: {
+
+                                location = (long) object.value;
+                                type = LabelType.FUNCTION;
+                                break;
+
+                            }
+
+                            case LOGIC: {
+
+                                location = (long) object.value;
+                                type = LabelType.DATA;
+                                break;
+
+                            }
+
+                            default: {
+
+                                location = instruction.location + instruction.getLength();
+
+                            }
+
+                        }
+                        // generate label
+                        if (program.getLabels().containsKey(location)) continue; // already resolved
+
+                        // generate label
+                        Label label = new Label(location, type);
+
+                        // add label to program
+                        program.addLabel(label);
+
+                        // set reference to label
+                        object.label = label;
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        return program.getLabels();
+
     }
 
 

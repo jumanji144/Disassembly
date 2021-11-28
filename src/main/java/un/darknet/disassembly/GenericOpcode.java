@@ -31,7 +31,7 @@ public class GenericOpcode implements Opcode {
      */
     @Override
     public Operand[] operands() {
-        return new Operand[0];
+        return operands;
     }
 
     /**

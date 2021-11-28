@@ -9,13 +9,17 @@ import un.darknet.disassembly.X86.Operations;
 import un.darknet.disassembly.X86.X86Decoder;
 import un.darknet.disassembly.data.Instruction;
 import un.darknet.disassembly.data.Opcode;
+import un.darknet.disassembly.data.Program;
 import un.darknet.disassembly.decoding.DecoderContext;
+import un.darknet.disassembly.labels.Label;
+import un.darknet.disassembly.labels.LabelScheme;
 import un.darknet.disassembly.operand.Operand;
 import un.darknet.disassembly.operand.OperandObject;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static un.darknet.disassembly.operand.Operand.*;
@@ -294,6 +298,30 @@ public class X86Test {
         };
 
         common(instructions, expected);
+
+
+    }
+
+    @Test
+    public void testLabels() {
+
+        LabelScheme.globalScheme = LabelScheme.FRIENDLY;
+
+        byte[] instructions = {
+
+                0x70, 0x20 // JB 0x20
+
+        };
+
+        Instruction[] insn = disassembler.disassemble(instructions);
+
+        Program program = Program.withInstructions(insn);
+
+        Map<Long, Label> labels = disassembler.getBackend().resolveLabels(program);
+
+        assertEquals(1, labels.size());
+
+        assertEquals(insn[0].toString(), "JO label_0x00000022");
 
 
     }

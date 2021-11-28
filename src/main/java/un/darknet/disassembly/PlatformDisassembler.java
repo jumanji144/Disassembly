@@ -2,8 +2,10 @@ package un.darknet.disassembly;
 
 import un.darknet.disassembly.data.Program;
 import un.darknet.disassembly.exception.DisassemblerException;
+import un.darknet.disassembly.labels.Label;
 
 import java.io.IOException;
+import java.util.Map;
 
 public interface PlatformDisassembler {
 
@@ -51,5 +53,12 @@ public interface PlatformDisassembler {
      * @param length  how much to disassemble
      */
     void process(Program program, int start, int length) throws IOException;
+
+    /**
+     * Resolves the labels for a disassembled program.
+     * @param program a disassembled program
+     * @return a map of labels to their offsets
+     */
+    Map<Long, Label> resolveLabels(Program program);
 
 }

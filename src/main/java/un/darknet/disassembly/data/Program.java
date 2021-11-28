@@ -1,9 +1,9 @@
 package un.darknet.disassembly.data;
 
-import un.darknet.disassembly.Label;
+import un.darknet.disassembly.labels.Label;
+import un.darknet.disassembly.operand.OperandObject;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * General class which contains the input and output of a program.
@@ -14,7 +14,8 @@ public class Program {
     // TODO: add debug info and elf / pe labels maybe a ProgramResolver?
     public byte[] code;
     public List<Instruction> instructions = new ArrayList<>();
-    List<Label> labels = new ArrayList<>();
+    Map<Object, OperandObject> operandObjectPool;
+    Map<Long, Label> labels = new HashMap<>();
 
     public Program() {
     }
@@ -30,19 +31,25 @@ public class Program {
         return p;
     }
 
+    public static Program withInstructions(Instruction... instructions) {
+        Program p = new Program();
+        p.instructions = Arrays.asList(instructions);
+        return p;
+    }
+
     public void addInstruction(Instruction instruction) {
         instructions.add(instruction);
     }
 
     public void addLabel(Label label) {
-        labels.add(label);
+        labels.put(label.address, label);
     }
 
     public List<Instruction> getInstructions() {
         return instructions;
     }
 
-    public List<Label> getLabels() {
+    public Map<Long, Label> getLabels() {
         return labels;
     }
 

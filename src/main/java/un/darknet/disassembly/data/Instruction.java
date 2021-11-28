@@ -22,6 +22,10 @@ public class Instruction {
         return opcode.mnemonic();
     }
 
+    public long getLength() {
+        return opcode.size();
+    }
+
     @Override
     public String toString() {
         return opcode.toString();
