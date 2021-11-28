@@ -1,4 +1,6 @@
-package un.darknet.disassembly;
+package un.darknet.disassembly.data;
+
+import un.darknet.disassembly.operand.Operand;
 
 public interface Opcode {
 
@@ -10,7 +12,8 @@ public interface Opcode {
     /**
      * @return The opcode operands.
      */
-    String operands();
+    Operand[] operands();
+
 
     /**
      * @return The opcode size in bytes.

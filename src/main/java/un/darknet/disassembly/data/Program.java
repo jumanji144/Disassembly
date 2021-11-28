@@ -1,4 +1,6 @@
-package un.darknet.disassembly;
+package un.darknet.disassembly.data;
+
+import un.darknet.disassembly.Label;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,14 +13,21 @@ public class Program {
     public String source;
     // TODO: add debug info and elf / pe labels maybe a ProgramResolver?
     public byte[] code;
-    List<Instruction> instructions = new ArrayList<>();
+    public List<Instruction> instructions = new ArrayList<>();
     List<Label> labels = new ArrayList<>();
 
-    public Program() {}
+    public Program() {
+    }
 
     public Program(String source, byte[] code) {
         this.source = source;
         this.code = code;
+    }
+
+    public static Program withCode(byte[] code) {
+        Program p = new Program();
+        p.code = code;
+        return p;
     }
 
     public void addInstruction(Instruction instruction) {
@@ -43,12 +52,6 @@ public class Program {
 
     public byte[] getCode() {
         return code;
-    }
-
-    public static Program withCode(byte[] code) {
-        Program p = new Program();
-        p.code = code;
-        return p;
     }
 
 }

@@ -1,18 +1,14 @@
-package un.darknet.disassembly;
+package un.darknet.disassembly.data;
 
-import lombok.Data;
-
-@Data
 public class Instruction {
+
+    public long location;
+    public Opcode opcode;
 
     public Instruction(long location, Opcode opcode) {
         this.location = location;
         this.opcode = opcode;
     }
-
-    public long location;
-
-    public Opcode opcode;
 
     @Override
     public String toString() {

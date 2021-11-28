@@ -1,17 +1,20 @@
 package un.darknet.disassembly;
 
+import un.darknet.disassembly.data.Opcode;
+import un.darknet.disassembly.operand.Operand;
+
 public class GenericOpcode implements Opcode {
 
     private final String mnemonic;
     private final long size;
-    private final String operands;
+    private final Operand[] operands;
 
-    public GenericOpcode(String mnemonic, String operands, long size) {
-        
+    public GenericOpcode(String mnemonic, long size, Operand... operands) {
+
         this.mnemonic = mnemonic;
         this.operands = operands;
         this.size = size;
-        
+
     }
 
 
@@ -27,8 +30,8 @@ public class GenericOpcode implements Opcode {
      * @return The opcode operands.
      */
     @Override
-    public String operands() {
-        return operands.toLowerCase();
+    public Operand[] operands() {
+        return new Operand[0];
     }
 
     /**
@@ -41,9 +44,17 @@ public class GenericOpcode implements Opcode {
 
     @Override
     public String toString() {
-        if(operands == null || operands.isEmpty())
+        if (operands == null || operands.length == 0)
             return mnemonic;
 
-        return String.format("%s %s", mnemonic, operands);
+        StringBuilder sb = new StringBuilder();
+        sb.append(mnemonic);
+        sb.append(" ");
+        for (Operand operand : operands) {
+            sb.append(operand.toString());
+            sb.append(", ");
+        }
+        sb.delete(sb.length() - 2, sb.length());
+        return sb.toString();
     }
 }

@@ -10,7 +10,8 @@ public class StringsReader {
     /**
      * Reads the strings from the given data.
      * A string is defined as a sequence of bytes that are not 0x00.
-     * @param data The data to read the strings from.
+     *
+     * @param data   The data to read the strings from.
      * @param offset the offset to start reading from
      * @param length the length of the data to read
      * @return a map of the strings and their offsets
@@ -23,12 +24,12 @@ public class StringsReader {
 
             char c = (char) data[(int) i];
 
-            if(Character.isISOControl(c)) {
-                if(buffer.length() > 0) {
+            if (Character.isISOControl(c)) {
+                if (buffer.length() > 0) {
                     strings.put(i, buffer.toString());
                     buffer = new StringBuilder();
                 }
-            }else
+            } else
                 buffer.append(c);
 
         }
@@ -42,7 +43,8 @@ public class StringsReader {
      * Reads the strings from the given data.
      * A string is defined as a sequence of bytes that are not 0x00.
      * But this method will only return unique strings.
-     * @param data The data to read the strings from.
+     *
+     * @param data   The data to read the strings from.
      * @param offset the offset to start reading from
      * @param length the length of the data to read
      * @return a map of strings with all of their locations
@@ -53,15 +55,15 @@ public class StringsReader {
 
         Map<String, List<Long>> stringsWithoutDuplicates = new HashMap<>();
 
-        for(Map.Entry<Long, String> entry : strings.entrySet()) {
-            if(!stringsWithoutDuplicates.containsKey(entry.getValue())) {
+        for (Map.Entry<Long, String> entry : strings.entrySet()) {
+            if (!stringsWithoutDuplicates.containsKey(entry.getValue())) {
                 stringsWithoutDuplicates.put(entry.getValue(), new ArrayList<>());
             }
             stringsWithoutDuplicates.get(entry.getValue()).add(entry.getKey());
         }
 
         // sort the list of offsets
-        for(Map.Entry<String, List<Long>> entry : stringsWithoutDuplicates.entrySet()) {
+        for (Map.Entry<String, List<Long>> entry : stringsWithoutDuplicates.entrySet()) {
             entry.getValue().sort(Long::compareTo);
         }
 

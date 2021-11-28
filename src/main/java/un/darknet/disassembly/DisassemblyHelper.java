@@ -1,11 +1,11 @@
 package un.darknet.disassembly;
 
-import lombok.experimental.UtilityClass;
 
-@UtilityClass
+import un.darknet.disassembly.data.Instruction;
+
 public class DisassemblyHelper {
 
-    public Instruction[] disassembleX86(byte[] code) {
+    public static Instruction[] disassembleX86(byte[] code) {
 
         Disassembler disassembler = new Disassembler(Architecture.X86, Endianness.LITTLE);
 

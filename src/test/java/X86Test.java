@@ -4,14 +4,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import un.darknet.disassembly.*;
+import un.darknet.disassembly.X86.Operations;
+import un.darknet.disassembly.X86.X86Decoder;
+import un.darknet.disassembly.data.Instruction;
+import un.darknet.disassembly.data.Opcode;
+import un.darknet.disassembly.decoding.DecoderContext;
+import un.darknet.disassembly.operand.Operand;
+import un.darknet.disassembly.operand.OperandObject;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static un.darknet.disassembly.operand.Operand.*;
 
 public class X86Test {
 
@@ -23,6 +30,40 @@ public class X86Test {
         disassembler = new Disassembler(Architecture.X86, Endianness.LITTLE);
 
     }
+
+    @Test
+    public void testDecoder() throws IOException {
+
+        X86Decoder decoder = new X86Decoder(disassembler.getBackend());
+
+        decoder.feed(new byte[] {0x03, 0x05, 0x56, 0x78, 0x56, 0x34}, 0, 6);
+
+        DecoderContext context = decoder.next();
+
+        assertEquals(context.getInstruction().toString(), "ADD EAX, [0x34567856]");
+
+    }
+
+    @Test
+    void testOpcode() {
+
+        OperandObject regObject = OperandObject.forRegister("EAX");
+        OperandObject constObject = OperandObject.forImmediate(0x102030);
+
+        Operand op = new Operand(regObject, constObject);
+
+        op.types.set(TYPE_MEMORY);
+
+        assertEquals("[EAX + 0x102030]", op.toString());
+
+        Operand op2 = new Operand(regObject);
+
+        Opcode opcode = new GenericOpcode("ADD", 2, op2, op);
+
+        assertEquals("ADD EAX, [EAX + 0x102030]", opcode.toString());
+
+    }
+
 
     public static List<Arguments> getAllRegRMInstructions() {
 

@@ -1,15 +1,20 @@
 package un.darknet.disassembly.X86;
 
-import lombok.SneakyThrows;
-import me.martinez.pe.io.CadesBufferStream;
 import me.martinez.pe.io.LittleEndianReader;
-import un.darknet.disassembly.*;
+import un.darknet.disassembly.Architecture;
+import un.darknet.disassembly.Bits;
+import un.darknet.disassembly.Endianness;
+import un.darknet.disassembly.PlatformDisassembler;
+import un.darknet.disassembly.data.Program;
+import un.darknet.disassembly.decoding.DecoderContext;
 import un.darknet.disassembly.exception.DisassemblerException;
 
+import java.io.IOException;
 import java.util.Stack;
 
 public class X86Disassembler implements PlatformDisassembler {
 
+    public static final byte DEF_BIT_SIZE = Bits.BITS_32;
     String mnemonic;
     int opcode;
     String operand = "";
@@ -23,12 +28,9 @@ public class X86Disassembler implements PlatformDisassembler {
     boolean repeatPrefixZero;
     String segment = "";
     boolean sizeOverride;
-
     LittleEndianReader reader;
     boolean instructionWasPrefix;
-
     byte currentBitSize;
-    public static final byte DEF_BIT_SIZE = Bits.BITS_32;
 
     public X86Disassembler() {
 
@@ -53,22 +55,9 @@ public class X86Disassembler implements PlatformDisassembler {
      */
     @Override
     public boolean supports(byte bits) {
-        if(bits == Bits.BITS_64)
+        if (bits == Bits.BITS_64)
             return false;
         return Bits.atMost(bits, Bits.BITS_32);
-    }
-
-    /**
-     * Attempt to set the disassembler's bit size.
-     *
-     * @param bits the bit size
-     * @throws DisassemblerException if the disassembler does not support the bit size
-     */
-    @Override
-    public void setBits(byte bits) throws DisassemblerException {
-        if(!supports(bits))
-            throw new DisassemblerException("Disassembler does not support " + Bits.friendlyName(bits));
-        currentBitSize = bits;
     }
 
     /**
@@ -79,6 +68,19 @@ public class X86Disassembler implements PlatformDisassembler {
     @Override
     public byte getBits() {
         return currentBitSize;
+    }
+
+    /**
+     * Attempt to set the disassembler's bit size.
+     *
+     * @param bits the bit size
+     * @throws DisassemblerException if the disassembler does not support the bit size
+     */
+    @Override
+    public void setBits(byte bits) throws DisassemblerException {
+        if (!supports(bits))
+            throw new DisassemblerException("Disassembler does not support " + Bits.friendlyName(bits));
+        currentBitSize = bits;
     }
 
     /**
@@ -110,7 +112,7 @@ public class X86Disassembler implements PlatformDisassembler {
 
     public void decodeOpcode(int b) {
 
-        if(b >= Mnemonics.Mnemonics.length) {
+        if (b >= Mnemonics.Mnemonics.length) {
             mnemonic = "UNKNOWN";
             operand = "";
             return;
@@ -118,16 +120,16 @@ public class X86Disassembler implements PlatformDisassembler {
 
         Object o = Mnemonics.Mnemonics[b];
 
-        if(o instanceof String) {
+        if (o instanceof String) {
 
             mnemonic = (String) o;
 
-            if(mnemonic.equals("PREFIX"))
+            if (mnemonic.equals("PREFIX"))
                 instructionWasPrefix = true;
 
             operand = Operations.ops[b];
 
-        }else {
+        } else {
 
             mnemonic = "???";
             operand = "???";
@@ -140,35 +142,34 @@ public class X86Disassembler implements PlatformDisassembler {
 
         String toFormat = "";
 
-        if(!segment.isEmpty())
+        if (!segment.isEmpty())
             toFormat += segment + ":[";
         else
             toFormat += "[";
 
-        if(!register.isEmpty())
+        if (!register.isEmpty())
             toFormat += "%s + ";
 
-        if(displacement != 0)
+        if (displacement != 0)
             toFormat += "0x%0" + size + "X";
 
         toFormat += "]";
 
-        if(register.isEmpty())
+        if (register.isEmpty())
             return String.format(toFormat, displacement);
 
-        if(displacement == 0)
+        if (displacement == 0)
             return String.format(toFormat, register);
 
         return String.format(toFormat, register, displacement);
     }
 
-    @SneakyThrows
-    public void decodeREGRM(int val) {
+    public void decodeREGRM(int val) throws IOException {
 
         // [opcode]0 0  00  000 000
         //         s d  mod reg r/m
 
-         boolean s = (opcode & 0x01) == 0x01;
+        boolean s = (opcode & 0x01) == 0x01;
         boolean d = (opcode & 0x02) == 0x02;
 
         int mod = (val & 0xC0) >> 6;
@@ -178,13 +179,13 @@ public class X86Disassembler implements PlatformDisassembler {
         boolean disp = mod == 0 && rm == 5;
 
         int regSize = s ? 2 : 0;
-        if(sizeOverride) regSize = 1;
+        if (sizeOverride) regSize = 1;
 
         String register = decodeRegister(reg, regSize);
 
         stack.push(register);
 
-        if(mod == 3) { // rm is a register
+        if (mod == 3) { // rm is a register
 
             register = decodeRegister(rm, regSize);
 
@@ -192,7 +193,7 @@ public class X86Disassembler implements PlatformDisassembler {
 
         }
 
-        if(mod == 0 && disp) { // displacement 4 bytes after
+        if (mod == 0 && disp) { // displacement 4 bytes after
 
             long displacement = reader.readDword();
             stack.push(buildMem("", displacement, 4));
@@ -205,7 +206,7 @@ public class X86Disassembler implements PlatformDisassembler {
 
         }
 
-        if(mod == 1 || mod == 2) { // 8 bit displacement
+        if (mod == 1 || mod == 2) { // 8 bit displacement
 
             long displacement = mod == 1 ? reader.readByte() : reader.readDword();
             register = decodeRegister(rm, regSize);
@@ -213,17 +214,14 @@ public class X86Disassembler implements PlatformDisassembler {
 
         }
 
-        if(d) {
+        if (d) {
             stackSwap();
         }
     }
 
+    public void decodeOperand(String operand) throws IOException {
 
-
-    @SneakyThrows
-    public void decodeOperand(String operand) {
-
-        if(operand == null) {
+        if (operand == null) {
             outOperand = "";
             return;
         }
@@ -232,15 +230,15 @@ public class X86Disassembler implements PlatformDisassembler {
 
         for (char c : chars) {
 
-            if(Character.isDigit(c)) numStack.push(c - '0');
+            if (Character.isDigit(c)) numStack.push(c - '0');
 
-            if(c == 'R') { // Read 2 Register
+            if (c == 'R') { // Read 2 Register
 
                 decodeREGRM(reader.readByte());
 
             }
 
-            if(c == 'r') {
+            if (c == 'r') {
 
                 int reg = numStack.pop();
                 int mode = numStack.pop();
@@ -249,13 +247,13 @@ public class X86Disassembler implements PlatformDisassembler {
 
             }
 
-            if(c == 'i') {
+            if (c == 'i') {
 
                 int size = numStack.pop();
 
                 long n;
-                if(size == 1) n = reader.readByte();
-                else if(size == 2) n = reader.readWord();
+                if (size == 1) n = reader.readByte();
+                else if (size == 2) n = reader.readWord();
                 else n = reader.readDword();
 
 
@@ -263,7 +261,7 @@ public class X86Disassembler implements PlatformDisassembler {
 
             }
 
-            if(c == 'U') {
+            if (c == 'U') {
 
                 int reg = opcode & 0x07; // extract first 3 bits
 
@@ -275,7 +273,7 @@ public class X86Disassembler implements PlatformDisassembler {
 
             }
 
-            if(c == 'a') {
+            if (c == 'a') {
 
                 String elem1 = stack.pop();
                 String elem2 = stack.pop();
@@ -284,39 +282,33 @@ public class X86Disassembler implements PlatformDisassembler {
 
             }
 
-            if(c == 'o') {
+            if (c == 'o') {
 
                 stack.push(outOperand);
 
             }
 
-            if(c == 's') {
+            if (c == 's') {
 
                 stackSwap();
 
             }
 
-            if(c == 'd') {
-
-
-
-            }
-
-            if(c == 'S') {
+            if (c == 'S') {
 
                 int index = numStack.pop();
                 segment = Constants.SEGMENTS[index];
 
             }
 
-            if(c == '-') {
+            if (c == '-') {
                 sizeOverride = true;
                 instructionWasPrefix = true;
             }
 
         }
 
-        if(stack.size() > 0) { // if stack is not empty, then there is an operand
+        if (stack.size() > 0) { // if stack is not empty, then there is an operand
             outOperand = stack.pop();
         }
 
@@ -329,52 +321,29 @@ public class X86Disassembler implements PlatformDisassembler {
     }
 
 
-    @SneakyThrows
     @Override
-    public void process(Program program, int start, int length)  {
+    public void process(Program program, int start, int length) throws IOException {
 
-        this.bytes = program.code;
+        X86Decoder decoder = new X86Decoder(this);
+        decoder.feed(program.code, start, length);
 
-        reader = new LittleEndianReader(new CadesBufferStream(bytes, start, length));
-        while(reader.getStream().getPos() < length) {
+        while (decoder.hasNext()) {
 
-            long startPos = reader.getStream().getPos();
+            DecoderContext ctx = decoder.next(); // result of decoding
 
-            opcode = reader.readByte();
+            if (ctx.getInstruction() == null) continue; // error occurred
 
-            decodeOpcode(opcode);
-            decodeOperand(operand);
-
-            if(instructionWasPrefix) {
-
-                instructionWasPrefix = false;
-                // if instruction was prefix, we need to read next byte
-                continue;
-
-            }
-
-            // reset segment override
-            segment = "";
-            sizeOverride = false;
-
-            // size is the difference between start and end of instruction
-            long size = reader.getStream().getPos() - startPos;
-            long actualLocation = reader.getStream().getPos() + start;
-
-            System.out.println(size);
-
-            GenericOpcode opcode = new GenericOpcode(mnemonic, outOperand, size);
-
-            outOperand = "";
-            mnemonic = "";
-
-            Instruction instruction = new Instruction(actualLocation, opcode);
-            program.addInstruction(instruction);
-
+            program.addInstruction(ctx.getInstruction()); // add instruction to program
 
         }
 
+        // resolve labels & resolve jumps
+        resolveLabels(program);
 
+
+    }
+
+    private void resolveLabels(Program program) {
     }
 
 

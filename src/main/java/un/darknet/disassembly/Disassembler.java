@@ -1,7 +1,10 @@
 package un.darknet.disassembly;
 
-import lombok.SneakyThrows;
 import un.darknet.disassembly.X86.X86Disassembler;
+import un.darknet.disassembly.data.Instruction;
+import un.darknet.disassembly.data.Program;
+
+import java.io.IOException;
 
 public class Disassembler {
 
@@ -17,6 +20,10 @@ public class Disassembler {
                 backend = new X86Disassembler();
             }
         }
+    }
+
+    public PlatformDisassembler getBackend() {
+        return backend;
     }
 
     public Architecture getArchitecture() {
@@ -43,11 +50,15 @@ public class Disassembler {
 
     }
 
-    @SneakyThrows
     public Instruction[] disassemble(byte[] code) {
         Program program = Program.withCode(code);
 
-        backend.process(program, 0, code.length);
+        try {
+            backend.process(program, 0, code.length);
+        } catch (IOException e) {
+
+
+        }
 
         return program.instructions.toArray(new Instruction[0]);
     }
