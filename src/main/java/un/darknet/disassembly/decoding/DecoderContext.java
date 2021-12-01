@@ -13,6 +13,7 @@ public class DecoderContext {
     Flags flags = new Flags();
     Stack<Object> stack = new Stack<>();
     Instruction instruction;
+    Object override; // used for any type of override
 
     @SuppressWarnings("unchecked")
     public <T> T pop() {
@@ -65,5 +66,12 @@ public class DecoderContext {
         this.flags = flags;
     }
 
+    public Object getOverride() {
+        return override;
+    }
+
+    public void setOverride(Object override) {
+        this.override = override;
+    }
 
 }

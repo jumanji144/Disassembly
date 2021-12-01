@@ -17,10 +17,11 @@ import java.util.List;
 
 import static un.darknet.disassembly.X86.Mnemonics.Mnemonics;
 import static un.darknet.disassembly.X86.Operations.*;
+import static un.darknet.disassembly.operand.Operand.*;
 
 public class X86Decoder extends Decoder {
 
-    String mnemonic;
+    Object mnemonic;
     String operation;
 
     public X86Decoder(PlatformDisassembler platform) {
@@ -39,6 +40,26 @@ public class X86Decoder extends Decoder {
             size = 0; // 8-bit
 
         return size;
+
+    }
+
+    long readBytes(DecoderContext ctx) throws IOException {
+
+        int size = getSize(ctx);
+
+        if(ctx.getOverride() != null) {
+
+            size = (int)ctx.getOverride();
+
+        }
+
+        long n = 0;
+        if (size == 0) n = reader.readByte();
+        else if (size == 1) n = reader.readWord();
+        else if (size == 2) n = reader.readDword();
+        else if (size == 3) n = reader.readQword();
+
+        return n;
 
     }
 
@@ -63,11 +84,21 @@ public class X86Decoder extends Decoder {
         int rm = val & 0x07;
 
         boolean disp = mod == 0 && rm == 5;
+        boolean imm = false;
+
+        if(mnemonic instanceof String[]) {
+
+            String[] mnemonics = (String[]) mnemonic;
+            mnemonic = mnemonics[reg]; // reg field is the mnemonic
+
+            imm = true;
+
+        }
 
         if (!s) ctx.getFlags().set(PREFIX_LEGACY); // enable legacy mode
         int regSize = getSize(ctx);
 
-        if(d) {
+        if(d && !imm) {
             String register = decodeRegister(reg, regSize);
 
             operands.add(new Operand(OperandObject.forRegister(register)));
@@ -86,7 +117,7 @@ public class X86Decoder extends Decoder {
             long displacement = reader.readDword();
 
             Operand op = new Operand(OperandObject.forImmediate(displacement));
-            op.types.set(Operand.TYPE_MEMORY);
+            op.types.set(TYPE_MEMORY | TYPE_CONSTANT);
 
             operands.add(op);
 
@@ -96,7 +127,7 @@ public class X86Decoder extends Decoder {
             String register = decodeRegister(rm, regSize);
 
             Operand op = new Operand(OperandObject.forRegister(register));
-            op.types.set(Operand.TYPE_MEMORY);
+            op.types.set(TYPE_MEMORY | TYPE_REGISTER);
             operands.add(op);
 
         }
@@ -110,13 +141,26 @@ public class X86Decoder extends Decoder {
             OperandObject dispObj = OperandObject.forImmediate(displacement);
 
             Operand op = new Operand(regObj, dispObj);
-            op.types.set(Operand.TYPE_MEMORY);
+            op.types.set(TYPE_MEMORY | TYPE_REGISTER | TYPE_CONSTANT);
             operands.add(op);
 
 
         }
 
-        if(!d) {
+        if(imm) {
+
+            long immediate = readBytes(ctx);
+
+            OperandObject immObj = OperandObject.forImmediate(immediate);
+            Operand op = new Operand(immObj);
+            op.types.set(TYPE_CONSTANT);
+            operands.add(op);
+
+
+
+        }
+
+        if(!d & !imm) {
             String register = decodeRegister(reg, regSize);
 
             operands.add(new Operand(OperandObject.forRegister(register)));
@@ -187,6 +231,13 @@ public class X86Decoder extends Decoder {
                         break;
                     }
 
+                    case 'O': {
+
+                        ctx.setOverride(ctx.pop());
+                        break;
+
+                    }
+
                     default: {
                         Logging.warn("Unhandled operation: " + c);
                     }
@@ -207,6 +258,14 @@ public class X86Decoder extends Decoder {
      * @throws IOException thrown if an error occurs while reading the stream
      */
     public void decodePrefix(DecoderContext ctx) throws IOException {
+
+
+        if(!prefixToFlag.containsKey(ctx.getOpcode())) {
+
+            Logging.warn("Unhandled prefix: " + ctx.getOpcode());
+            return;
+
+        }
 
         int flag = Operations.prefixToFlag.get(ctx.getOpcode());
         ctx.getFlags().set(flag);
@@ -230,19 +289,9 @@ public class X86Decoder extends Decoder {
             return;
         }
 
-        Object o = Mnemonics[opcode];
+        mnemonic = Mnemonics[opcode];
 
-        if (o instanceof String) {
-
-            mnemonic = (String) o;
-            operation = Operations.ops[opcode];
-
-        } else {
-
-            mnemonic = "???";
-            operation = "???";
-
-        }
+        operation = ops[opcode];
 
 
     }
@@ -270,7 +319,7 @@ public class X86Decoder extends Decoder {
 
             // find memory reference operand
             for (Operand operand : operands) {
-                if (operand.types.has(Operand.TYPE_MEMORY)) {
+                if (operand.types.has(TYPE_MEMORY)) {
                     // set segment override
                     operand.segment = ctx.getFlags()
                             .mask(SEGMENT_OVERRIDE_MASK)   // xxxx000000000000
@@ -283,9 +332,9 @@ public class X86Decoder extends Decoder {
 
         long size = stream.getPos() - ctx.getAddress(); // pos - start
 
-        GenericOpcode op = new GenericOpcode(mnemonic, size, operands);
+        GenericOpcode op = new GenericOpcode((String)mnemonic, size, operands);
 
-        InstructionType type = InstructionType.get(mnemonic);
+        InstructionType type = InstructionType.get((String)mnemonic);
 
         Instruction instruction = new Instruction(ctx.getAddress(), op, type);
 

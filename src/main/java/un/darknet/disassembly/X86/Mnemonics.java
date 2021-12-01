@@ -33,7 +33,7 @@ public class Mnemonics {
             "POP", "POP", "POP", "POP", "POP", "POP", "POP", "POP",
             "PUSHA",
             "POPA",
-            "PREFIX",
+            "BOUND",
             "PREFIX",
             "PREFIX",
             "PREFIX",
@@ -47,6 +47,13 @@ public class Mnemonics {
             "OUTS", "OUTSB",
             "JO", "JNO", "JB", "JNB", "JZ", "JNZ", "JBE", "JNBE",
             "JS", "JNS", "JP", "JNP", "JL", "JNL", "JLE", "JNLE",
+            new String[]{"ADD","OR","ADC","SBB","AND","SUB","XOR","CMP"}, // selection where mod rm decides the mnemonic
+            new String[]{"ADD","OR","ADC","SBB","AND","SUB","XOR","CMP"},
+            new String[]{"ADD","OR","ADC","SBB","AND","SUB","XOR","CMP"},
+            new String[]{"ADD","OR","ADC","SBB","AND","SUB","XOR","CMP"},
+            "TEST", "TEST",
+            "XCHG", "XCHG",
+            "MOV", "MOV", "MOV", "MOV",
 
 
     };

@@ -1,6 +1,4 @@
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -36,6 +34,7 @@ public class X86Test {
     }
 
     @Test
+    @Order(1)
     public void testDecoder() throws IOException {
 
         X86Decoder decoder = new X86Decoder(disassembler.getBackend());
@@ -49,6 +48,7 @@ public class X86Test {
     }
 
     @Test
+    @Order(2)
     void testOpcode() {
 
         OperandObject regObject = OperandObject.forRegister("EAX");
@@ -188,6 +188,7 @@ public class X86Test {
 
     @ParameterizedTest
     @MethodSource("getAllRegRMInstructions")
+    @Order(3)
     void testRegModRM(String expectedOp, byte prefix) {
 
         commonRegModRMTest(expectedOp, prefix);
@@ -269,6 +270,95 @@ public class X86Test {
 
     }
 
+    @Test
+    public void testGroupREGRM() {
+
+        byte[] instructions = {
+
+                (byte) 0x80, (byte) 0xc1, 0x10, // ADD CL, 0x10
+                (byte) 0x81, (byte) 0xc1, 0x10, 0x00, 0x00, 0x00, // ADD ECX, 0x10
+                (byte) 0x81, 0x01, 0x10, 0x00, 0x00, 0x10, // ADD [ECX], 0x10000010
+                (byte) 0x83, (byte) 0xc0, 0x10, // ADD EAX, 0x10
+
+
+        };
+
+        String[] expected = {
+
+                "ADD CL, 0x10",
+                "ADD ECX, 0x10",
+                "ADD [ECX], 0x10000010",
+                "ADD EAX, 0x10"
+
+        };
+
+        common(instructions, expected);
+
+    }
+
+    @Test
+    public void testTest() {
+
+        byte[] instructions = {
+                (byte) 0x84, (byte) 0xc0, // TEST AL, AL
+                (byte) 0x85, (byte) 0xc0, // TEST EAX, EAX
+                (byte) 0x85, 0x00 // TEST [EAX], EAX
+        };
+
+        String[] expected = {
+                "TEST AL, AL",
+                "TEST EAX, EAX",
+                "TEST [EAX], EAX"
+        };
+
+        common(instructions, expected);
+
+    }
+
+    @Test
+    public void testXCHG() {
+
+        byte[] instructions = {
+                (byte) 0x86, (byte) 0xC9, // XCHG CL, CL
+                (byte) 0x87, (byte) 0xC9, // XCHG ECX, ECX
+                (byte) 0x87, 0x09 // XCHG [ECX], ECX
+        };
+
+        String[] expected = {
+                "XCHG CL, CL",
+                "XCHG ECX, ECX",
+                "XCHG ECX, [ECX]"
+        };
+
+        common(instructions, expected);
+
+    }
+
+    @Test
+    public void testMOV() {
+
+        byte[] instructions = {
+                (byte) 0x88, (byte) 0xC1, // MOV CL, AL
+                (byte) 0x89, (byte) 0xC1, // MOV ECX, EAX
+                (byte) 0x89, 0x01, // MOV [ECX], EAX
+                (byte) 0x8A, (byte) 0xC1, // MOV AL, CL
+                (byte) 0x8B, (byte) 0xC1, // MOV EAX, ECX
+                (byte) 0x8B, 0x01, // MOV EAX, [ECX]
+        };
+
+        String[] expected = {
+                "MOV CL, AL",
+                "MOV ECX, EAX",
+                "MOV [ECX], EAX",
+                "MOV AL, CL",
+                "MOV EAX, ECX",
+                "MOV EAX, [ECX]"
+        };
+
+        common(instructions, expected);
+
+    }
+
     /**
      * Test for opcodes which only have 1 byte of data
      */
@@ -305,7 +395,7 @@ public class X86Test {
     @Test
     public void testLabels() {
 
-        LabelScheme.globalScheme = LabelScheme.FRIENDLY;
+        LabelScheme.globalScheme = LabelScheme.ADDRESS;
 
         byte[] instructions = {
 
@@ -321,7 +411,7 @@ public class X86Test {
 
         assertEquals(1, labels.size());
 
-        assertEquals(insn[0].toString(), "JO label_0x00000022");
+        assertEquals(insn[0].toString(), "JO label_00000022");
 
 
     }

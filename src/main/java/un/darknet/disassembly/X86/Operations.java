@@ -51,6 +51,7 @@ public class Operations {
      * i: push immediate value (must prefix: size: 0-8 where 8 is 64bit)
      * S: override segment (must prefix: index: 0-7) (e.g. "0S" -> "ES:[")}
      * U: load 1 register based on opcode
+     * O: set overflow to object in stack
      */
     public static String[] ops = new String[]{
 
@@ -87,10 +88,15 @@ public class Operations {
             "Ri", // TODO: make imul (something like Ra(size)i(push output)a)
             "li",
             "Rli",
-            "", "", // TODO: INS, INSB
-            "", "", // TODO: OUTS, OUTSB
+            "", "",
+            "", "",
             "li", "li", "li", "li", "li", "li", "li", "li",
             "li", "li", "li", "li", "li", "li", "li", "li",
+            "lR", "R", "lR", "0OR", // 0 -> [0] O: 0 -> overflow; imm -> 8-bit immediate
+            "lR", "R",
+            "lR", "R",
+            "lR", "R",
+            "lR", "R"
 
     };
 

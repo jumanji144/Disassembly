@@ -3,6 +3,9 @@ package un.darknet.disassembly.operand;
 import un.darknet.disassembly.X86.Constants;
 import un.darknet.disassembly.util.Flags;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 /**
  * An object representing an operand in an instruction.
  */
@@ -59,5 +62,20 @@ public class Operand {
         if (types.has(TYPE_MEMORY))
             sb.append("]");
         return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Operand operand = (Operand) o;
+        return segment == operand.segment && Arrays.equals(objects, operand.objects) && Objects.equals(types, operand.types);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(segment, types);
+        result = 31 * result + Arrays.hashCode(objects);
+        return result;
     }
 }
