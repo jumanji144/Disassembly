@@ -87,7 +87,17 @@ public class X86Test {
 
         Instruction[] actual = disassembler.disassemble(instructions);
 
-        assertEquals(expected.length, actual.length);
+        try {
+            assertEquals(expected.length, actual.length);
+        } catch (AssertionError e) {
+            System.out.println("Expected: " + expected.length + " Actual: " + actual.length);
+            // print out the actual instructions
+            for (Instruction instruction : actual) {
+                System.out.println(instruction.opcode.toString());
+            }
+
+            throw e;
+        }
 
         for (int i = 0; i < actual.length; i++) {
             Assertions.assertEquals(expected[i], actual[i].toString());
@@ -166,7 +176,7 @@ public class X86Test {
     void generalTest() {
 
         byte[] instructions = {
-                0x6B, (byte) 0xC1, 0x18  // add eax, [eax + 0x0a]
+                (byte) 0x91
         };
 
         String[] expected = {
@@ -247,6 +257,8 @@ public class X86Test {
                 0x58, // POP EAX
                 0x68, 0x56, 0x34, 0x12, 0x46,// PUSH 0x123456
                 0x6A, 0x34, // PUSH 0x34
+                (byte) 0x8F, (byte) 0xc0, // POP EAX
+                (byte) 0x8F, 0x00, // POP [EAX]
         };
 
         String[] expected = {
@@ -254,7 +266,9 @@ public class X86Test {
                 "PUSH EAX",
                 "POP EAX",
                 "PUSH 0x46123456",
-                "PUSH 0x34"
+                "PUSH 0x34",
+                "POP EAX",
+                "POP [EAX]"
 
         };
 
@@ -321,13 +335,19 @@ public class X86Test {
         byte[] instructions = {
                 (byte) 0x86, (byte) 0xC9, // XCHG CL, CL
                 (byte) 0x87, (byte) 0xC9, // XCHG ECX, ECX
-                (byte) 0x87, 0x09 // XCHG [ECX], ECX
+                (byte) 0x87, 0x09, // XCHG [ECX], ECX
+                (byte) 0x91, // XCHG ECX, EAX
+                (byte) 0x92, // XCHG EDX, EAX
+                0x66, (byte) 0x91, // XCHG CX,AX
         };
 
         String[] expected = {
                 "XCHG CL, CL",
                 "XCHG ECX, ECX",
-                "XCHG ECX, [ECX]"
+                "XCHG ECX, [ECX]",
+                "XCHG ECX, EAX",
+                "XCHG EDX, EAX",
+                "XCHG CX, AX"
         };
 
         common(instructions, expected);
@@ -344,6 +364,8 @@ public class X86Test {
                 (byte) 0x8A, (byte) 0xC1, // MOV AL, CL
                 (byte) 0x8B, (byte) 0xC1, // MOV EAX, ECX
                 (byte) 0x8B, 0x01, // MOV EAX, [ECX]
+                (byte) 0x8C, (byte) 0xC0, // MOV eax, es
+                (byte) 0x8E, (byte) 0xC0, // MOV es, eax
         };
 
         String[] expected = {
@@ -352,7 +374,9 @@ public class X86Test {
                 "MOV [ECX], EAX",
                 "MOV AL, CL",
                 "MOV EAX, ECX",
-                "MOV EAX, [ECX]"
+                "MOV EAX, [ECX]",
+                "MOV ES, AX",
+                "MOV ES, AX"
         };
 
         common(instructions, expected);
@@ -374,6 +398,11 @@ public class X86Test {
                 0x27,  // daa
                 0x2f,  // das
                 0x37,  // aaa
+                0x3f,  // aas
+                0x60,  // pusha
+                0x61,  // popa
+                0x62,  // bound
+                (byte) 0x90,  // nop
         };
 
         String[] expected = {
@@ -384,11 +413,37 @@ public class X86Test {
                 "PUSH DS",
                 "DAA",
                 "DAS",
-                "AAA"
+                "AAA",
+                "AAS",
+                "PUSHA",
+                "POPA",
+                "BOUND",
+                "NOP"
         };
 
         common(instructions, expected);
 
+
+    }
+
+
+
+    @Test
+    public void testLEA() {
+
+        byte[] instructions = {
+                (byte) 0x8d, (byte) 0x05, 0x00, 0x00, 0x00, 0x00, // lea eax, [0x00000000]
+                (byte) 0x8d, 0x01, // lea eax, [ecx]
+                (byte) 0x8d, 0x41, 0x00, // lea eax, [ecx + 0x00]
+                (byte) 0x8d, (byte) 0x81, 0x00, 0x00, 0x00, 0x01 , // lea eax, [ecx + 0x1000000]
+        };
+
+        String[] expected = {
+                "LEA EAX, [0x00000000]",
+                "LEA EAX, [ECX]",
+                "LEA EAX, [ECX + 0x00]",
+                "LEA EAX, [ECX + 0x10000000]"
+        };
 
     }
 

@@ -31,13 +31,13 @@ public class X86Decoder extends Decoder {
     int getSize(DecoderContext ctx) {
 
         int size = 2; // default: 32-bit
-        if (ctx.getFlags().has(PREFIX_OPERAND | PREFIX_ADDRESS)) {
-            size = 1; // 16-bit
-        }
-        if (ctx.getFlags().has(PREFIX_REX) && platform.getBits() >= Bits.BITS_64) // has rex prefix and platform is 64-bit supports 64-bit
-            size = 3; // 64-bit
         if (ctx.getFlags().has(PREFIX_LEGACY))
             size = 0; // 8-bit
+        if (ctx.getFlags().has(PREFIX_REX) && platform.getBits() >= Bits.BITS_64) // has rex prefix and platform is 64-bit supports 64-bit
+            size = 3; // 64-bit
+        if (ctx.getFlags().has(PREFIX_OPERAND) || ctx.getFlags().has(PREFIX_ADDRESS)) {
+            size = 1; // 16-bit
+        }
 
         return size;
 
@@ -63,9 +63,77 @@ public class X86Decoder extends Decoder {
 
     }
 
-    public String decodeRegister(int reg, int setting) {
+    public String decodeRegister(DecoderContext ctx, int reg, int setting) {
+
+        // TODO: make this better
+        if(ctx.getFlags().has(SEGMENT_REGISTER_REGRM)) { // reg is a segment register
+            ctx.getFlags().unset(SEGMENT_REGISTER_REGRM); // one time flag
+            return Constants.SEGMENTS[reg];
+        }
 
         return Constants.REGISTERS[setting][reg];
+
+    }
+
+    /**
+     * Decodes the register if it is the last 3 bits of the opcode
+     * @param ctx the decoder context
+     * @param operands the operands list
+     * @throws IOException if an error occurs
+     */
+    public void decodeR(DecoderContext ctx, List<Operand> operands) throws IOException {
+
+        int reg = ctx.getOpcode() & 7;
+
+        operands.add(
+                new Operand(
+                        OperandObject.forRegister(
+                                decodeRegister(ctx, reg, getSize(ctx))
+                        )
+                )
+        );
+
+
+    }
+
+    public void decodeRM(DecoderContext ctx, List<Operand> operands) throws IOException {
+
+        int val = reader.readByte();
+        int mod = (val & 0xC0) >> 6;
+        int rm = (val & 0x07);
+
+        int regSize = getSize(ctx);
+
+        if (mod == 3) { // rm is a register
+
+            String register = decodeRegister(ctx, rm, regSize);
+
+            operands.add(new Operand(OperandObject.forRegister(register)));
+
+        } else if (mod == 0) {
+
+            String register = decodeRegister(ctx, rm, regSize);
+
+            Operand op = new Operand(OperandObject.forRegister(register));
+            op.types.set(TYPE_MEMORY | TYPE_REGISTER);
+            operands.add(op);
+
+        }
+
+        if (mod == 1 || mod == 2) { // 8 bit displacement
+
+            long displacement = mod == 1 ? reader.readByte() : reader.readDword();
+            String register = decodeRegister(ctx, rm, regSize);
+
+            OperandObject regObj = OperandObject.forRegister(register);
+            OperandObject dispObj = OperandObject.forImmediate(displacement);
+
+            Operand op = new Operand(regObj, dispObj);
+            op.types.set(TYPE_MEMORY | TYPE_REGISTER | TYPE_CONSTANT);
+            operands.add(op);
+
+
+        }
 
     }
 
@@ -77,21 +145,19 @@ public class X86Decoder extends Decoder {
         int val = reader.readByte();
 
         boolean s = (ctx.getOpcode() & 0x01) == 0x01;
-        boolean d = (ctx.getOpcode() & 0x02) == 0x02;
+        boolean d = (ctx.getOpcode() & 0x02) == 0x02 || ctx.getFlags().has(IGNORE_DIRECTION_BIT_REGRM);
 
         int mod = (val & 0xC0) >> 6;
         int reg = (val & 0x38) >> 3;
         int rm = val & 0x07;
 
         boolean disp = mod == 0 && rm == 5;
-        boolean imm = false;
+        boolean imm = ctx.getFlags().has(REGRM_IMMEDIATE); // has immediate flag
 
         if(mnemonic instanceof String[]) {
 
             String[] mnemonics = (String[]) mnemonic;
             mnemonic = mnemonics[reg]; // reg field is the mnemonic
-
-            imm = true;
 
         }
 
@@ -99,14 +165,14 @@ public class X86Decoder extends Decoder {
         int regSize = getSize(ctx);
 
         if(d && !imm) {
-            String register = decodeRegister(reg, regSize);
+            String register = decodeRegister(ctx, reg, regSize);
 
             operands.add(new Operand(OperandObject.forRegister(register)));
         }
 
         if (mod == 3) { // rm is a register
 
-            String register = decodeRegister(rm, regSize);
+            String register = decodeRegister(ctx, rm, regSize);
 
             operands.add(new Operand(OperandObject.forRegister(register)));
 
@@ -124,7 +190,7 @@ public class X86Decoder extends Decoder {
 
         } else if (mod == 0) {
 
-            String register = decodeRegister(rm, regSize);
+            String register = decodeRegister(ctx, rm, regSize);
 
             Operand op = new Operand(OperandObject.forRegister(register));
             op.types.set(TYPE_MEMORY | TYPE_REGISTER);
@@ -135,7 +201,7 @@ public class X86Decoder extends Decoder {
         if (mod == 1 || mod == 2) { // 8 bit displacement
 
             long displacement = mod == 1 ? reader.readByte() : reader.readDword();
-            String register = decodeRegister(rm, regSize);
+            String register = decodeRegister(ctx, rm, regSize);
 
             OperandObject regObj = OperandObject.forRegister(register);
             OperandObject dispObj = OperandObject.forImmediate(displacement);
@@ -161,7 +227,7 @@ public class X86Decoder extends Decoder {
         }
 
         if(!d & !imm) {
-            String register = decodeRegister(reg, regSize);
+            String register = decodeRegister(ctx, reg, regSize);
 
             operands.add(new Operand(OperandObject.forRegister(register)));
         }
@@ -193,10 +259,9 @@ public class X86Decoder extends Decoder {
 
                     }
 
-                    case 'R': {
-                        decodeREGRM(ctx, operands);
-                        break;
-                    }
+                    case 'R': decodeREGRM(ctx, operands);break;
+                    case 'm': decodeRM(ctx, operands);break;
+                    case 'M': decodeR(ctx, operands);break;
 
                     case 'i': {
 
@@ -222,6 +287,29 @@ public class X86Decoder extends Decoder {
                         String register = Constants.REGISTERS[size][reg];
 
                         operands.add(new Operand(OperandObject.forRegister(register)));
+                        break;
+
+                    }
+
+                    case 'F': {
+
+                        int flagIndex = ctx.pop();
+                        long flag = decoderFlags[flagIndex-1];
+
+                        ctx.getFlags().set(flag);
+
+                        break;
+
+
+                    }
+
+                    case 'p': {
+
+                        int prefixIndex = ctx.pop();
+                        int prefix = x86Prefix[prefixIndex - 1];
+
+                        ctx.getFlags().set(prefix);
+
                         break;
 
                     }
@@ -321,7 +409,7 @@ public class X86Decoder extends Decoder {
             for (Operand operand : operands) {
                 if (operand.types.has(TYPE_MEMORY)) {
                     // set segment override
-                    operand.segment = ctx.getFlags()
+                    operand.segment = (int) ctx.getFlags()
                             .mask(SEGMENT_OVERRIDE_MASK)   // xxxx000000000000
                             .shift(SEGMENT_OVERRIDE_SHIFT) // 000000000000xxxx
                             .get();

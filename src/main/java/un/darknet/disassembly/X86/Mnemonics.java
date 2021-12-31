@@ -11,7 +11,7 @@ public class Mnemonics {
 
 
             "ADD", "ADD", "ADD", "ADD", "ADD", "ADD", "PUSH ES", "POP ES",
-            "OR", "OR", "OR", "OR", "OR", "OR", "PUSH CS", "",
+            "OR", "OR", "OR", "OR", "OR", "OR", "PUSH CS", "", // 0F extended opcodes
             "ADC", "ADC", "ADC", "ADC", "ADC", "ADC", "PUSH SS", "POP SS",
             "SBB", "SBB", "SBB", "SBB", "SBB", "SBB", "PUSH DS", "POP DS",
             "AND", "AND", "AND", "AND", "AND", "AND",
@@ -54,7 +54,17 @@ public class Mnemonics {
             "TEST", "TEST",
             "XCHG", "XCHG",
             "MOV", "MOV", "MOV", "MOV",
+            "MOV",
+            "LEA",
+            "MOV",
+            "POP",
+            "NOP",
+            "XCHG","XCHG","XCHG","XCHG","XCHG","XCHG","XCHG",
 
+
+    };
+
+    public static final String[] Mnemonics_Extended = {
 
     };
 

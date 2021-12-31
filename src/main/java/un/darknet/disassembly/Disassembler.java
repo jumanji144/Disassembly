@@ -56,8 +56,7 @@ public class Disassembler {
         try {
             backend.process(program, 0, code.length);
         } catch (IOException e) {
-
-
+            throw new RuntimeException(e);
         }
 
         return program.instructions.toArray(new Instruction[0]);

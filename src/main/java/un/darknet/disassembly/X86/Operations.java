@@ -11,13 +11,13 @@ import java.util.Map;
 public class Operations {
 
     // instruction prefixes
-    public static final int PREFIX_OPERAND = 0b0000000000000001;
 
     // flag structure
     // 0000                                      0000                         00000000
     // segment override                          rex prefix                   flags
     // determines which segment override to use  determine which rex is used  determine which flags are set
 
+    public static final int PREFIX_OPERAND =            0b0000000000000001;
     public static final int PREFIX_ADDRESS =            0b0000000000000010;
     public static final int PREFIX_SEGMENT_OVERRIDE =   0b0000000000000100;
     public static final int PREFIX_LOCK =               0b0000000000001000;
@@ -42,6 +42,30 @@ public class Operations {
     public static final int SEGMENT_OVERRIDE_MASK =     0b1111000000000000;
     public static final int SEGMENT_OVERRIDE_SHIFT =    12;
 
+    // Decoder flags
+    public static final long SIZE_OVERRIDE =                    0b00000000000000010000000000000000; // forcefully sets size to 8-bit
+    public static final long SEGMENT_REGISTER_REGRM =           0b00000000000000100000000000000000; // segment register is in regrm
+    public static final long IGNORE_DIRECTION_BIT_REGRM =       0b00000000000001000000000000000000; // ignore direction bit in regrm
+    public static final long REGRM_IMMEDIATE =                  0b00000000000010000000000000000000; // regrm immediate
+
+    public static final long[] decoderFlags = new long[] {
+        SIZE_OVERRIDE,
+        SEGMENT_REGISTER_REGRM,
+        IGNORE_DIRECTION_BIT_REGRM,
+        REGRM_IMMEDIATE
+    };
+
+    public static final int[] x86Prefix = new int[] {
+        PREFIX_OPERAND,
+        PREFIX_ADDRESS,
+        PREFIX_SEGMENT_OVERRIDE,
+        PREFIX_LOCK,
+        PREFIX_REP,
+        PREFIX_REPNE,
+        PREFIX_REX,
+        PREFIX_LEGACY,
+    };
+
     /**
      * Operation map:
      * {@code
@@ -52,6 +76,8 @@ public class Operations {
      * S: override segment (must prefix: index: 0-7) (e.g. "0S" -> "ES:[")}
      * U: load 1 register based on opcode
      * O: set overflow to object in stack
+     * F: will set decoder flags (shifted by 4 bytes)
+     * p: will set x86 prefix
      */
     public static String[] ops = new String[]{
 
@@ -85,18 +111,32 @@ public class Operations {
             ",", // switch to 16-bit address
             "",
             "i",
-            "Ri", // TODO: make imul (something like Ra(size)i(push output)a)
+            "Ri",
             "li",
             "Rli",
             "", "",
             "", "",
             "li", "li", "li", "li", "li", "li", "li", "li",
             "li", "li", "li", "li", "li", "li", "li", "li",
-            "lR", "R", "lR", "0OR", // 0 -> [0] O: 0 -> overflow; imm -> 8-bit immediate
+            "4FlR", "4FR", "4FlR", "4F0OR", // 0 -> [0] O: 0 -> overflow; imm -> 8-bit immediate
             "lR", "R",
             "lR", "R",
             "lR", "R",
-            "lR", "R"
+            "lR", "R",
+            "2F1pR",// RegRM but reg is a segment register and 16-bit
+            "R",
+            "2F1pR",
+            "m",
+            "", // nop, does nothing, so nothing must be decoded
+            "M0r","M0r","M0r","M0r","M0r","M0r","M0r",
+
+
+
+    };
+
+    public static final String[] extendedOps = {
+
+
 
     };
 

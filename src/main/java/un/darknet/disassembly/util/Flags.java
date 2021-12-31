@@ -5,32 +5,36 @@ package un.darknet.disassembly.util;
  */
 public class Flags {
 
-    public int backing;
+    public long backing;
 
     public Flags() {
     }
 
-    private Flags(int backing) {
+    private Flags(long backing) {
         this.backing = backing;
     }
 
-    public boolean has(int flag) {
+    public boolean has(long flag) {
         return (flag & this.backing) == flag;
     }
 
-    public void set(int flag) {
+    public void set(long flag) {
         this.backing |= flag;
     }
 
-    public int get() {
+    public void unset(long flag) {
+        this.backing &= ~flag;
+    }
+
+    public long get() {
         return backing;
     }
 
-    public Flags mask(int mask) {
+    public Flags mask(long mask) {
         return new Flags(this.backing & mask);
     }
 
-    public void clear(int flag) {
+    public void clear(long flag) {
         this.backing &= ~flag;
     }
 
@@ -38,11 +42,11 @@ public class Flags {
         this.backing = 0;
     }
 
-    public Flags lshift(int amount) {
+    public Flags lshift(long amount) {
         return new Flags(backing << amount);
     }
 
-    public Flags shift(int amount) {
+    public Flags shift(long amount) {
         return new Flags(backing >> amount);
     }
 
