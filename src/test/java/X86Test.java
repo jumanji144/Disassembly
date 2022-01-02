@@ -3,7 +3,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import un.darknet.disassembly.*;
-import un.darknet.disassembly.X86.Operations;
 import un.darknet.disassembly.X86.X86Decoder;
 import un.darknet.disassembly.data.Instruction;
 import un.darknet.disassembly.data.Opcode;
@@ -18,6 +17,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static un.darknet.disassembly.operand.Operand.*;
@@ -30,6 +30,43 @@ public class X86Test {
     static void setup() {
 
         disassembler = new Disassembler(Architecture.X86, Endianness.LITTLE);
+
+    }
+
+    public static List<Arguments> getOneByteData() {
+
+        return Arrays.asList(
+                Arguments.of(0x06, "PUSH ES"),
+                Arguments.of(0x07, "POP ES"),
+                Arguments.of(0x0e, "PUSH CS"),
+                Arguments.of(0x16, "PUSH SS"),
+                Arguments.of(0x1e, "PUSH DS"),
+                Arguments.of(0x27, "DAA"),
+                Arguments.of(0x2f, "DAS"),
+                Arguments.of(0x37, "AAA"),
+                Arguments.of(0x3f, "AAS"),
+                Arguments.of(0x60, "PUSHA"),
+                Arguments.of(0x61, "POPA"),
+                Arguments.of(0x62, "BOUND"),
+                Arguments.of((byte) 0x90, "NOP"),
+                Arguments.of((byte) 0x98, "CWDE"),
+                Arguments.of((byte) 0x99, "CDQ"),
+                Arguments.of((byte) 0x9b, "WAIT"),
+                Arguments.of((byte) 0x9c, "PUSHFD"),
+                Arguments.of((byte) 0x9d, "POPFD"),
+                Arguments.of((byte) 0x9e, "SAHF"),
+                Arguments.of((byte) 0x9f, "LAHF"),
+                Arguments.of((byte) 0xa4, "MOVSB"),
+                Arguments.of((byte) 0xa5, "MOVSD"),
+                Arguments.of((byte) 0xa6, "CMPSB"),
+                Arguments.of((byte) 0xa7, "CMPSD"),
+                Arguments.of((byte) 0xaa, "STOSB"),
+                Arguments.of((byte) 0xab, "STOSD"),
+                Arguments.of((byte) 0xac, "LODSB"),
+                Arguments.of((byte) 0xad, "LODSD"),
+                Arguments.of((byte) 0xae, "SCASB"),
+                Arguments.of((byte) 0xaf, "SCASD")
+        );
 
     }
 
@@ -176,7 +213,7 @@ public class X86Test {
     void generalTest() {
 
         byte[] instructions = {
-                (byte) 0x91
+
         };
 
         String[] expected = {
@@ -202,6 +239,22 @@ public class X86Test {
     void testRegModRM(String expectedOp, byte prefix) {
 
         commonRegModRMTest(expectedOp, prefix);
+
+    }
+
+    @Test
+    public void testCallInstruction() {
+
+        byte[] instructions = {
+                (byte) 0x9A, 0x10, 0x10, 0x00, 0x00, (byte) 0x99, 0x00
+
+        };
+
+        String[] expected = {
+                "CALL 0x99:0x1010"
+        };
+
+        common(instructions, expected);
 
     }
 
@@ -316,13 +369,17 @@ public class X86Test {
         byte[] instructions = {
                 (byte) 0x84, (byte) 0xc0, // TEST AL, AL
                 (byte) 0x85, (byte) 0xc0, // TEST EAX, EAX
-                (byte) 0x85, 0x00 // TEST [EAX], EAX
+                (byte) 0x85, 0x00, // TEST [EAX], EAX
+                (byte) 0xA8, 0x10, // TEST AL, 0x10
+                (byte) 0xA9, 0x10, 0x00, 0x00, 0x00, // TEST EAX, 0x10
         };
 
         String[] expected = {
                 "TEST AL, AL",
                 "TEST EAX, EAX",
-                "TEST [EAX], EAX"
+                "TEST [EAX], EAX",
+                "TEST AL, 0x10",
+                "TEST EAX, 0x10",
         };
 
         common(instructions, expected);
@@ -366,6 +423,26 @@ public class X86Test {
                 (byte) 0x8B, 0x01, // MOV EAX, [ECX]
                 (byte) 0x8C, (byte) 0xC0, // MOV eax, es
                 (byte) 0x8E, (byte) 0xC0, // MOV es, eax
+                (byte) 0xA0, 0x00, 0x00, // MOV AL, [0x0]
+                (byte) 0xA1, 0x00, 0x00, 0x00, 0x00, // MOV EAX, [0x0]
+                (byte) 0xA2, 0x00, 0x00, // MOV [EAX], AL
+                (byte) 0xA3, 0x00, 0x00, 0x00, 0x00, // MOV [EAX], EAX
+                (byte) 0xb0, 0x01, // mov al, 0x01
+                (byte) 0xb1, 0x02, // mov cl, 0x02
+                (byte) 0xb2, 0x03, // mov dl, 0x03
+                (byte) 0xb3, 0x04, // mov bl, 0x04
+                (byte) 0xb4, 0x05, // mov ah, 0x05
+                (byte) 0xb5, 0x06, // mov ch, 0x06
+                (byte) 0xb6, 0x07, // mov dh, 0x07
+                (byte) 0xb7, 0x08, // mov bh, 0x08
+                (byte) 0xb8, 0x09, 0x0a, 0x0b, 0x0c, // mov eax, 0x0c0b0a09
+                (byte) 0xb9, 0x0d, 0x0e, 0x0f, 0x10, // mov ecx, 0x100f0e0d
+                (byte) 0xba, 0x11, 0x12, 0x13, 0x14, // mov edx, 0x140d0c0b
+                (byte) 0xbb, 0x15, 0x16, 0x17, 0x18, // mov ebx, 0x180f0e0d
+                (byte) 0xbc, 0x19, 0x1a, 0x1b, 0x1c, // mov esp, 0x1c0b0a09
+                (byte) 0xbd, 0x1d, 0x1e, 0x1f, 0x20, // mov ebp, 0x200f0e0d
+                (byte) 0xbe, 0x21, 0x22, 0x23, 0x24, // mov esi, 0x240d0c0b
+                (byte) 0xbf, 0x25, 0x26, 0x27, 0x28, // mov edi, 0x280f0e0d
         };
 
         String[] expected = {
@@ -376,7 +453,27 @@ public class X86Test {
                 "MOV EAX, ECX",
                 "MOV EAX, [ECX]",
                 "MOV ES, AX",
-                "MOV ES, AX"
+                "MOV ES, AX",
+                "MOV AL, [0x0]",
+                "MOV EAX, [0x0]",
+                "MOV [0x0], AL",
+                "MOV [0x0], EAX",
+                "MOV AL, 0x1",
+                "MOV CL, 0x2",
+                "MOV DL, 0x3",
+                "MOV BL, 0x4",
+                "MOV AH, 0x5",
+                "MOV CH, 0x6",
+                "MOV DH, 0x7",
+                "MOV BH, 0x8",
+                "MOV EAX, 0xC0B0A09",
+                "MOV ECX, 0x100F0E0D",
+                "MOV EDX, 0x14131211",
+                "MOV EBX, 0x18171615",
+                "MOV ESP, 0x1C1B1A19",
+                "MOV EBP, 0x201F1E1D",
+                "MOV ESI, 0x24232221",
+                "MOV EDI, 0x28272625"
         };
 
         common(instructions, expected);
@@ -386,42 +483,11 @@ public class X86Test {
     /**
      * Test for opcodes which only have 1 byte of data
      */
-    @Test
-    public void oneInstructionTest() {
+    @ParameterizedTest
+    @MethodSource("getOneByteData")
+    public void oneInstructionTest(int opcode, String expected) {
 
-        byte[] instructions = {
-                0x06,  // push es
-                0x07,  // pop es
-                0x0e,  // push cs
-                0x16,  // push ss
-                0x1e,  // push ds
-                0x27,  // daa
-                0x2f,  // das
-                0x37,  // aaa
-                0x3f,  // aas
-                0x60,  // pusha
-                0x61,  // popa
-                0x62,  // bound
-                (byte) 0x90,  // nop
-        };
-
-        String[] expected = {
-                "PUSH ES",
-                "POP ES",
-                "PUSH CS",
-                "PUSH SS",
-                "PUSH DS",
-                "DAA",
-                "DAS",
-                "AAA",
-                "AAS",
-                "PUSHA",
-                "POPA",
-                "BOUND",
-                "NOP"
-        };
-
-        common(instructions, expected);
+        common(new byte[]{(byte)opcode}, new String[]{expected});
 
 
     }
@@ -439,11 +505,13 @@ public class X86Test {
         };
 
         String[] expected = {
-                "LEA EAX, [0x00000000]",
-                "LEA EAX, [ECX]",
-                "LEA EAX, [ECX + 0x00]",
-                "LEA EAX, [ECX + 0x10000000]"
+                "LEA [0x0], EAX",
+                "LEA [ECX], EAX",
+                "LEA [ECX + 0x0], EAX",
+                "LEA [ECX + 0x1000000], EAX"
         };
+
+        common(instructions, expected);
 
     }
 

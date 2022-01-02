@@ -14,9 +14,8 @@ public class Operand {
     // types reused in operand objects
     public static final int TYPE_REGISTER = 0b000;
     public static final int TYPE_CONSTANT = 0b001;
-    public static final int TYPE_MEMORY = 0b010; // only operand only type
-
-    public int segment = -1; // used for memory operands
+    public static final int TYPE_MEMORY =   0b010; // only operand only type
+    public static final int TYPE_SEGMENT =  0b011; // object only
 
     public OperandObject[] getObjects() {
         return objects;
@@ -37,15 +36,25 @@ public class Operand {
 
     }
 
+    public OperandObject find(int type) {
+        for (OperandObject object : objects) {
+            if (object.type == type)
+                return object;
+        }
+        return null;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        if (types.has(TYPE_MEMORY)) {
-            if (segment != -1)
-                sb.append(Constants.SEGMENTS[segment]).append(":");
+        OperandObject segment = find(TYPE_SEGMENT);
+        if(segment != null)
+            sb.append(segment.value).append(":");
+        if (types.has(TYPE_MEMORY))
             sb.append("[");
-        }
         for (OperandObject object : objects) {
+            if(object.type == TYPE_SEGMENT)
+                continue;
             if (object.type == TYPE_REGISTER) {
                 sb.append(object.value);
             } else if (object.type == TYPE_CONSTANT) {
@@ -69,13 +78,26 @@ public class Operand {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Operand operand = (Operand) o;
-        return segment == operand.segment && Arrays.equals(objects, operand.objects) && Objects.equals(types, operand.types);
+        return Arrays.equals(objects, operand.objects) && Objects.equals(types, operand.types);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(segment, types);
+        int result = Objects.hash(types);
         result = 31 * result + Arrays.hashCode(objects);
         return result;
+    }
+
+    /**
+     * Will append an object to the operand.
+     * @param obj the object to append
+     */
+    public void append(OperandObject obj) {
+        // we need to resize array to add object
+        // we will assume that the array always needs to be resized
+        if (obj.type == TYPE_REGISTER)
+            types.set(TYPE_REGISTER);
+        objects = Arrays.copyOf(objects, objects.length + 1);
+        objects[objects.length - 1] = obj;
     }
 }

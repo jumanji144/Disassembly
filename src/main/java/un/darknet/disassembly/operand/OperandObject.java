@@ -2,13 +2,12 @@ package un.darknet.disassembly.operand;
 
 import un.darknet.disassembly.labels.Label;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class OperandObject {
 
     // object pool
-    public static final Map<Object, OperandObject> pool = new HashMap<>();
+    public static final List<OperandObject> pool = new ArrayList<>();
     // objects can only have 1 type
     public int type;
     public Object value;
@@ -28,16 +27,32 @@ public class OperandObject {
         return forObj(value, Operand.TYPE_CONSTANT);
     }
 
+    public static OperandObject forSegment(String segment) { return forObj(segment, Operand.TYPE_SEGMENT); }
+
     public static OperandObject forObj(Object value, int type) {
 
-        OperandObject obj = pool.get(value);
-        if (obj == null) {
-            obj = new OperandObject(type, value);
-            pool.put(value, obj);
+        for (OperandObject obj : pool) {
+            if (obj.type == type && obj.value.equals(value)) {
+                return obj;
+            }
         }
+
+        OperandObject obj = new OperandObject(type, value);
+        pool.add(obj);
         return obj;
 
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        OperandObject that = (OperandObject) o;
+        return type == that.type && value.equals(that.value);
+    }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, value);
+    }
 }

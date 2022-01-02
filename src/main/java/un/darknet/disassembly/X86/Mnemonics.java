@@ -60,6 +60,21 @@ public class Mnemonics {
             "POP",
             "NOP",
             "XCHG","XCHG","XCHG","XCHG","XCHG","XCHG","XCHG",
+            new String[]{"CBW","CWDE","CDQE"},
+            new String[]{"CWD","CDQ","CQO"},
+            "CALL", "WAIT",
+            new String[]{"PUSHF", "PUSHFD", "PUSHFD"},
+            new String[]{"POPF", "POPFD", "POPFD"},
+            "SAHF", "LAHF",
+            "MOV", "MOV", "MOV", "MOV",
+            "MOVSB", new String[]{"MOVSW", "MOVSD", "???"},
+            "CMPSB", new String[]{"CMPSW", "CMPSD", "???"},
+            "TEST", "TEST",
+            "STOSB", new String[]{"STOSW", "STOSD", "???"},
+            "LODSB", new String[]{"LODSW", "LODSD", "???"},
+            "SCASB", new String[]{"SCASW", "SCASD", "???"},
+            "MOV", "MOV", "MOV", "MOV", "MOV", "MOV", "MOV", "MOV",
+            "MOV", "MOV", "MOV", "MOV", "MOV", "MOV", "MOV", "MOV",
 
 
     };

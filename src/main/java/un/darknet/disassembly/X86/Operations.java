@@ -78,6 +78,9 @@ public class Operations {
      * O: set overflow to object in stack
      * F: will set decoder flags (shifted by 4 bytes)
      * p: will set x86 prefix
+     * s: change mnemonic to depending on size (e.g. "mov" -> "movb", "movw", "movd")
+     * h: calls an opcode specific handler
+     *
      */
     public static String[] ops = new String[]{
 
@@ -129,7 +132,22 @@ public class Operations {
             "m",
             "", // nop, does nothing, so nothing must be decoded
             "M0r","M0r","M0r","M0r","M0r","M0r","M0r",
-
+            "s",
+            "s",
+            "h",
+            "",
+            "s",
+            "s",
+            "", "",
+            "h", "h", "h", "h",
+            "", "s",
+            "", "s",
+            "l0ri", "0ri",
+            "", "s",
+            "", "s",
+            "", "s",
+            "lMi", "lMi", "lMi", "lMi", "lMi", "lMi", "lMi", "lMi",
+            "Mi", "Mi", "Mi", "Mi", "Mi", "Mi", "Mi", "Mi",
 
 
     };

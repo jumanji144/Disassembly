@@ -12,6 +12,8 @@ import un.darknet.disassembly.operand.OperandObject;
 import un.darknet.disassembly.util.Logging;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,9 +49,9 @@ public class X86Decoder extends Decoder {
 
         int size = getSize(ctx);
 
-        if(ctx.getOverride() != null) {
+        if (ctx.getOverride() != null) {
 
-            size = (int)ctx.getOverride();
+            size = (int) ctx.getOverride();
 
         }
 
@@ -66,7 +68,7 @@ public class X86Decoder extends Decoder {
     public String decodeRegister(DecoderContext ctx, int reg, int setting) {
 
         // TODO: make this better
-        if(ctx.getFlags().has(SEGMENT_REGISTER_REGRM)) { // reg is a segment register
+        if (ctx.getFlags().has(SEGMENT_REGISTER_REGRM)) { // reg is a segment register
             ctx.getFlags().unset(SEGMENT_REGISTER_REGRM); // one time flag
             return Constants.SEGMENTS[reg];
         }
@@ -77,7 +79,8 @@ public class X86Decoder extends Decoder {
 
     /**
      * Decodes the register if it is the last 3 bits of the opcode
-     * @param ctx the decoder context
+     *
+     * @param ctx      the decoder context
      * @param operands the operands list
      * @throws IOException if an error occurs
      */
@@ -154,7 +157,7 @@ public class X86Decoder extends Decoder {
         boolean disp = mod == 0 && rm == 5;
         boolean imm = ctx.getFlags().has(REGRM_IMMEDIATE); // has immediate flag
 
-        if(mnemonic instanceof String[]) {
+        if (mnemonic instanceof String[]) {
 
             String[] mnemonics = (String[]) mnemonic;
             mnemonic = mnemonics[reg]; // reg field is the mnemonic
@@ -164,7 +167,7 @@ public class X86Decoder extends Decoder {
         if (!s) ctx.getFlags().set(PREFIX_LEGACY); // enable legacy mode
         int regSize = getSize(ctx);
 
-        if(d && !imm) {
+        if (d && !imm) {
             String register = decodeRegister(ctx, reg, regSize);
 
             operands.add(new Operand(OperandObject.forRegister(register)));
@@ -213,7 +216,7 @@ public class X86Decoder extends Decoder {
 
         }
 
-        if(imm) {
+        if (imm) {
 
             long immediate = readBytes(ctx);
 
@@ -223,10 +226,9 @@ public class X86Decoder extends Decoder {
             operands.add(op);
 
 
-
         }
 
-        if(!d & !imm) {
+        if (!d & !imm) {
             String register = decodeRegister(ctx, reg, regSize);
 
             operands.add(new Operand(OperandObject.forRegister(register)));
@@ -259,9 +261,15 @@ public class X86Decoder extends Decoder {
 
                     }
 
-                    case 'R': decodeREGRM(ctx, operands);break;
-                    case 'm': decodeRM(ctx, operands);break;
-                    case 'M': decodeR(ctx, operands);break;
+                    case 'R':
+                        decodeREGRM(ctx, operands);
+                        break;
+                    case 'm':
+                        decodeRM(ctx, operands);
+                        break;
+                    case 'M':
+                        decodeR(ctx, operands);
+                        break;
 
                     case 'i': {
 
@@ -294,7 +302,7 @@ public class X86Decoder extends Decoder {
                     case 'F': {
 
                         int flagIndex = ctx.pop();
-                        long flag = decoderFlags[flagIndex-1];
+                        long flag = decoderFlags[flagIndex - 1];
 
                         ctx.getFlags().set(flag);
 
@@ -326,6 +334,33 @@ public class X86Decoder extends Decoder {
 
                     }
 
+                    case 's': {
+
+                        String[] names = (String[]) mnemonic;
+                        mnemonic = names[getSize(ctx) - 1];
+
+                        break;
+
+                    }
+
+                    case 'h': {
+
+                        // find a handler method for this opcode
+                        String methodName = "op" + Integer.toHexString(ctx.getOpcode());
+                        try {
+
+                            Method method = getClass().getMethod(methodName, DecoderContext.class, List.class);
+                            method.invoke(this, ctx, operands);
+                        } catch (NoSuchMethodException e) {
+                            throw new RuntimeException("No handler method " + methodName);
+                        } catch (InvocationTargetException | IllegalAccessException e) {
+                            throw new RuntimeException("Error invoking handler method " + methodName);
+                        }
+
+                        break;
+
+                    }
+
                     default: {
                         Logging.warn("Unhandled operation: " + c);
                     }
@@ -348,7 +383,7 @@ public class X86Decoder extends Decoder {
     public void decodePrefix(DecoderContext ctx) throws IOException {
 
 
-        if(!prefixToFlag.containsKey(ctx.getOpcode())) {
+        if (!prefixToFlag.containsKey(ctx.getOpcode())) {
 
             Logging.warn("Unhandled prefix: " + ctx.getOpcode());
             return;
@@ -384,6 +419,12 @@ public class X86Decoder extends Decoder {
 
     }
 
+    String getSegment(int segment) {
+
+        return Constants.SEGMENTS[segment];
+
+    }
+
     /**
      * Decode an instruction based on the DecoderContext.
      *
@@ -409,10 +450,15 @@ public class X86Decoder extends Decoder {
             for (Operand operand : operands) {
                 if (operand.types.has(TYPE_MEMORY)) {
                     // set segment override
-                    operand.segment = (int) ctx.getFlags()
+
+                    String seg = getSegment((int) ctx.getFlags()
                             .mask(SEGMENT_OVERRIDE_MASK)   // xxxx000000000000
                             .shift(SEGMENT_OVERRIDE_SHIFT) // 000000000000xxxx
-                            .get();
+                            .get());
+
+                    OperandObject segment = OperandObject.forSegment(seg);
+                    operand.append(segment);
+
                 }
             }
 
@@ -420,13 +466,88 @@ public class X86Decoder extends Decoder {
 
         long size = stream.getPos() - ctx.getAddress(); // pos - start
 
-        GenericOpcode op = new GenericOpcode((String)mnemonic, size, operands);
+        GenericOpcode op = new GenericOpcode((String) mnemonic, size, operands);
 
-        InstructionType type = InstructionType.get((String)mnemonic);
+        InstructionType type = InstructionType.get((String) mnemonic);
 
         Instruction instruction = new Instruction(ctx.getAddress(), op, type);
 
         ctx.setInstruction(instruction); // set the output
 
     }
+
+    public void op9a(DecoderContext ctx, List<Operand> operands) throws IOException {
+
+        long address = readBytes(ctx);
+
+        int segment = reader.readWord(); // ptr16
+
+        String hex = String.format("0x%X", segment);
+
+        OperandObject segmentObj = OperandObject.forSegment(hex);
+
+        OperandObject offsetObj = OperandObject.forImmediate(address);
+
+        operands.add(new Operand(segmentObj, offsetObj));
+
+    }
+
+    public void opa0(DecoderContext ctx, List<Operand> operands) throws IOException {
+
+        long address = reader.readWord();
+
+        Operand memory = new Operand(OperandObject.forImmediate(address));
+        memory.types.set(TYPE_MEMORY);
+
+        Operand register = new Operand(OperandObject.forRegister("AL"));
+
+        operands.add(register);
+        operands.add(memory);
+
+    }
+
+    public void opa1(DecoderContext ctx, List<Operand> operands) throws IOException {
+
+        long address = readBytes(ctx); // read actual correct bytes
+
+        Operand memory = new Operand(OperandObject.forImmediate(address));
+        memory.types.set(TYPE_MEMORY);
+
+        Operand register = new Operand(OperandObject.forRegister(Constants.REGISTERS[getSize(ctx)][0]));
+
+        operands.add(register);
+        operands.add(memory);
+
+    }
+
+    public void opa2(DecoderContext ctx, List<Operand> operands) throws IOException {
+
+        long address = reader.readWord();
+
+        Operand memory = new Operand(OperandObject.forImmediate(address));
+        memory.types.set(TYPE_MEMORY);
+
+        Operand register = new Operand(OperandObject.forRegister("AL"));
+
+        operands.add(memory);
+        operands.add(register);
+
+    }
+
+    public void opa3(DecoderContext ctx, List<Operand> operands) throws IOException {
+
+        long address = readBytes(ctx); // read actual correct bytes
+
+        Operand memory = new Operand(OperandObject.forImmediate(address));
+        memory.types.set(TYPE_MEMORY);
+
+        Operand register = new Operand(OperandObject.forRegister(Constants.REGISTERS[getSize(ctx)][0]));
+
+        operands.add(memory);
+        operands.add(register);
+
+    }
+
+
+
 }
