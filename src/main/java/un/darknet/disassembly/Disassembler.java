@@ -3,6 +3,7 @@ package un.darknet.disassembly;
 import un.darknet.disassembly.X86.X86Disassembler;
 import un.darknet.disassembly.data.Instruction;
 import un.darknet.disassembly.data.Program;
+import un.darknet.disassembly.util.Arrays;
 
 import java.io.IOException;
 
@@ -48,6 +49,10 @@ public class Disassembler {
 
         return Bits.atMost(backend.getBits(), bits);
 
+    }
+
+    public Instruction[] disassemble(int[] code) {
+        return disassemble(Arrays.toBytes(code));
     }
 
     public Instruction[] disassemble(byte[] code) {
