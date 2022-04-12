@@ -25,7 +25,6 @@ public class DecoderContext {
         return (T) stack.push(t);
     }
 
-
     public int getOpcode() {
         return opcode;
     }

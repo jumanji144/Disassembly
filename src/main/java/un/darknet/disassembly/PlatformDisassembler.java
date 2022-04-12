@@ -2,6 +2,7 @@ package un.darknet.disassembly;
 
 import un.darknet.disassembly.data.Program;
 import un.darknet.disassembly.exception.DisassemblerException;
+import un.darknet.disassembly.exception.InvalidInstructionException;
 import un.darknet.disassembly.labels.Label;
 
 import java.io.IOException;
@@ -52,7 +53,7 @@ public interface PlatformDisassembler {
      * @param start   the start offset
      * @param length  how much to disassemble
      */
-    void process(Program program, int start, int length) throws IOException;
+    void process(Program program, int start, int length) throws IOException, InvalidInstructionException;
 
     /**
      * Resolves the labels for a disassembled program.

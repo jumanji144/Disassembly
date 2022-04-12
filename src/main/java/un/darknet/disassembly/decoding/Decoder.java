@@ -3,7 +3,10 @@ package un.darknet.disassembly.decoding;
 import me.martinez.pe.io.CadesBufferStream;
 import me.martinez.pe.io.CadesStreamReader;
 import me.martinez.pe.io.LittleEndianReader;
+import un.darknet.disassembly.Disassembler;
+import un.darknet.disassembly.GenericOpcode;
 import un.darknet.disassembly.PlatformDisassembler;
+import un.darknet.disassembly.exception.InvalidInstructionException;
 
 import java.io.IOException;
 
@@ -32,7 +35,7 @@ public abstract class Decoder {
     /**
      * Advance the reader to the next instruction.
      */
-    public DecoderContext next() throws IOException {
+    public DecoderContext next() throws IOException, InvalidInstructionException {
 
         long pos = stream.getPos(); // save start position for size calculation
         int opcode = reader.readByte();
@@ -41,7 +44,11 @@ public abstract class Decoder {
         ctx.opcode = opcode;
         ctx.address = pos;
 
-        decode(ctx); // send it off to child to decode
+        try {
+            decode(ctx); // send it off to child to decode
+        } catch (IOException e) {
+            throw new InvalidInstructionException(pos, new GenericOpcode("???", stream.getPos() - pos), e);
+        }
 
         return ctx;
     }

@@ -9,7 +9,7 @@ public class DisassemblyHelper {
 
         Disassembler disassembler = new Disassembler(Architecture.X86, Endianness.LITTLE);
 
-        disassembler.setBits(Bits.BITS_32);
+        disassembler.setBits(Bits.BITS_32); // assume 32-bit code
 
         return disassembler.disassemble(code);
 

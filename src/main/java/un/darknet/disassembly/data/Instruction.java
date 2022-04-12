@@ -30,4 +30,5 @@ public class Instruction {
     public String toString() {
         return opcode.toString();
     }
+
 }

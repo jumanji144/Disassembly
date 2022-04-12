@@ -1,13 +1,18 @@
 package un.darknet.disassembly;
 
+import org.slf4j.Logger;
 import un.darknet.disassembly.X86.X86Disassembler;
 import un.darknet.disassembly.data.Instruction;
 import un.darknet.disassembly.data.Program;
-import un.darknet.disassembly.util.Arrays;
+import un.darknet.disassembly.exception.DisassemblerException;
+import un.darknet.disassembly.exception.InvalidInstructionException;
+import un.darknet.disassembly.util.Bytes;
 
 import java.io.IOException;
 
 public class Disassembler {
+
+    public static Logger logger = org.slf4j.LoggerFactory.getLogger(Disassembler.class);
 
     private final Architecture architecture;
     private final Endianness endianness;
@@ -52,7 +57,7 @@ public class Disassembler {
     }
 
     public Instruction[] disassemble(int[] code) {
-        return disassemble(Arrays.toBytes(code));
+        return disassemble(Bytes.toBytes(code));
     }
 
     public Instruction[] disassemble(byte[] code) {
@@ -61,7 +66,9 @@ public class Disassembler {
         try {
             backend.process(program, 0, code.length);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new DisassemblerException(e.getMessage(), e);
+        } catch (InvalidInstructionException e) {
+            e.printStackTrace();
         }
 
         return program.instructions.toArray(new Instruction[0]);

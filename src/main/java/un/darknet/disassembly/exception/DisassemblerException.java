@@ -10,4 +10,12 @@ public class DisassemblerException extends RuntimeException {
         super(message);
     }
 
+    public DisassemblerException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public DisassemblerException(Throwable cause) {
+        super(cause);
+    }
+
 }

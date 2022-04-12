@@ -1,6 +1,6 @@
 package un.darknet.disassembly.util;
 
-public class Arrays {
+public class Bytes {
 
     /**
      * Will cast every value in the array directly to a byte
