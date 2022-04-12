@@ -80,7 +80,7 @@ public class Operations {
      * p: will set x86 prefix
      * s: change mnemonic to depending on size (e.g. "mov" -> "movb", "movw", "movd")
      * h: calls an opcode specific handler
-     *
+     * D: debug
      */
     public static String[] ops = new String[]{
 

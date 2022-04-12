@@ -36,9 +36,7 @@ public class X86Disassembler implements PlatformDisassembler {
      */
     @Override
     public boolean supports(byte bits) {
-        if (bits == Bits.BITS_64)
-            return false;
-        return Bits.atMost(bits, Bits.BITS_32);
+        return Bits.atMost(bits, Bits.BITS_64);
     }
 
     /**

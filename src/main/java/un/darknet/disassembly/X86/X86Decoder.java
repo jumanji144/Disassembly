@@ -30,14 +30,17 @@ public class X86Decoder extends Decoder {
         super(platform);
     }
 
-    int getSize(DecoderContext ctx) {
+    int getSize(boolean reg, DecoderContext ctx) {
 
         int size = 2; // default: 32-bit
         if (ctx.getFlags().has(PREFIX_LEGACY))
             size = 0; // 8-bit
         if (ctx.getFlags().has(PREFIX_REX) && platform.getBits() >= Bits.BITS_64) // has rex prefix and platform is 64-bit supports 64-bit
             size = 3; // 64-bit
-        if (ctx.getFlags().has(PREFIX_OPERAND) || ctx.getFlags().has(PREFIX_ADDRESS)) {
+        if (ctx.getFlags().has(PREFIX_OPERAND) && reg) {
+            size = 1; // 16-bit
+        }
+        if(ctx.getFlags().has(PREFIX_ADDRESS) && !reg) {
             size = 1; // 16-bit
         }
 
@@ -47,7 +50,7 @@ public class X86Decoder extends Decoder {
 
     long readBytes(DecoderContext ctx) throws IOException {
 
-        int size = getSize(ctx);
+        int size = getSize(false, ctx);
 
         if (ctx.getOverride() != null) {
 
@@ -91,7 +94,7 @@ public class X86Decoder extends Decoder {
         operands.add(
                 new Operand(
                         OperandObject.forRegister(
-                                decodeRegister(ctx, reg, getSize(ctx))
+                                decodeRegister(ctx, reg, getSize(true, ctx))
                         )
                 )
         );
@@ -105,7 +108,8 @@ public class X86Decoder extends Decoder {
         int mod = (val & 0xC0) >> 6;
         int rm = (val & 0x07);
 
-        int regSize = getSize(ctx);
+        int regSize = getSize(true, ctx);
+        int immSize = getSize(false, ctx);
 
         if (mod == 3) { // rm is a register
 
@@ -165,7 +169,8 @@ public class X86Decoder extends Decoder {
         }
 
         if (!s) ctx.getFlags().set(PREFIX_LEGACY); // enable legacy mode
-        int regSize = getSize(ctx);
+        int regSize = getSize(true, ctx);
+        int immSize = getSize(false, ctx);
 
         if (d && !imm) {
             String register = decodeRegister(ctx, reg, regSize);
@@ -252,11 +257,33 @@ public class X86Decoder extends Decoder {
 
                         int reg = ctx.pop();
 
-                        int mode = getSize(ctx);
+                        int mode = getSize(true, ctx);
 
                         String register = Constants.REGISTERS[mode][reg];
 
                         operands.add(new Operand(OperandObject.forRegister(register)));
+                        break;
+
+                    }
+
+                    case 'D': {
+
+                        // print the flag value in binary
+                        // print mnemonic and operands and operand object
+                        System.out.println("Current Opcode: " + mnemonic + "(0x" + Integer.toHexString(ctx.getOpcode()) + ")");
+                        System.out.println("At: " + ctx.getAddress());
+                        long flag = ctx.getFlags().backing;
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < 64; i++) {
+                            sb.append((flag & (1L << i)) == 0 ? '0' : '1');
+                        }
+                        System.out.println("Flags:\n" + sb);
+                        System.out.println("Operation String: " + operation);
+                        int i =1;
+                        for (Operand op : operands) {
+                            System.out.printf("Operand [%d|%s]: %s, objects: %d\n", i, Long.toBinaryString(op.types.backing), op.toString(), op.objects.length);
+                            i++;
+                        }
                         break;
 
                     }
@@ -273,7 +300,7 @@ public class X86Decoder extends Decoder {
 
                     case 'i': {
 
-                        int size = getSize(ctx);
+                        int size = getSize(true, ctx);
 
                         long n = 0;
                         if (size == 0) n = reader.readByte();
@@ -290,7 +317,7 @@ public class X86Decoder extends Decoder {
 
                         int reg = ctx.getOpcode() & 0x07; // extract first 3 bits
 
-                        int size = getSize(ctx);
+                        int size = getSize(true, ctx);
 
                         String register = Constants.REGISTERS[size][reg];
 
@@ -337,7 +364,7 @@ public class X86Decoder extends Decoder {
                     case 's': {
 
                         String[] names = (String[]) mnemonic;
-                        mnemonic = names[getSize(ctx) - 1];
+                        mnemonic = names[getSize(true, ctx) - 1];
 
                         break;
 
@@ -425,6 +452,12 @@ public class X86Decoder extends Decoder {
 
     }
 
+    boolean isRex(DecoderContext ctx) {
+
+        return ctx.getOpcode() >= 0x40 && ctx.getOpcode() <= 0x4f && platform.getBits() == Bits.BITS_64;
+
+    }
+
     /**
      * Decode an instruction based on the DecoderContext.
      *
@@ -435,7 +468,7 @@ public class X86Decoder extends Decoder {
 
         decodeOperation(ctx);
 
-        if (mnemonic.equals("PREFIX")) { // is a prefix
+        if (mnemonic.equals("PREFIX") || isRex(ctx)) { // is a prefix
 
             decodePrefix(ctx);
             return;
@@ -513,7 +546,7 @@ public class X86Decoder extends Decoder {
         Operand memory = new Operand(OperandObject.forImmediate(address));
         memory.types.set(TYPE_MEMORY);
 
-        Operand register = new Operand(OperandObject.forRegister(Constants.REGISTERS[getSize(ctx)][0]));
+        Operand register = new Operand(OperandObject.forRegister(Constants.REGISTERS[getSize(true, ctx)][0]));
 
         operands.add(register);
         operands.add(memory);
@@ -541,7 +574,7 @@ public class X86Decoder extends Decoder {
         Operand memory = new Operand(OperandObject.forImmediate(address));
         memory.types.set(TYPE_MEMORY);
 
-        Operand register = new Operand(OperandObject.forRegister(Constants.REGISTERS[getSize(ctx)][0]));
+        Operand register = new Operand(OperandObject.forRegister(Constants.REGISTERS[getSize(true, ctx)][0]));
 
         operands.add(memory);
         operands.add(register);

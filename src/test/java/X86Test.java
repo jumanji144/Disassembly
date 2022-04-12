@@ -14,6 +14,8 @@ import un.darknet.disassembly.operand.Operand;
 import un.darknet.disassembly.operand.OperandObject;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -212,23 +214,45 @@ public class X86Test {
     @Test
     void generalTest() {
 
-        byte[] instructions = {
+        // get bytes from resource file
+        byte[] instructions = getBytesFromResource("/testprogram");
 
-        };
-
-        String[] expected = {
-                "ADD EAX, EBX",
-                "OR al, 5a",
-                "ADD EAX, 50604323",
-                "OR EAX, eax",
-        };
+        disassembler.setBits(Bits.BITS_64);
 
         Instruction[] actual = disassembler.disassemble(instructions);
 
         for (Instruction instruction : actual) {
 
+            long instructionStart = instruction.location;
+            long instructionEnd = instructionStart + instruction.getLength();
+
+            // get all bytes in the instruction
+            byte[] instructionBytes = Arrays.copyOfRange(instructions, (int) instructionStart, (int) instructionEnd);
+
+            for(byte instructionByte : instructionBytes) {
+                System.out.printf("%02X ", instructionByte);
+            }
+
             System.out.println(instruction.opcode.toString());
 
+        }
+
+    }
+
+    private byte[] getBytesFromResource(String s) {
+
+        try {
+
+            InputStream inputStream = getClass().getResourceAsStream(s);
+
+            byte[] bytes = new byte[inputStream.available()];
+
+            inputStream.read(bytes);
+
+            return bytes;
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
     }
@@ -536,6 +560,25 @@ public class X86Test {
 
         assertEquals(insn[0].toString(), "JO label_00000022");
 
+
+    }
+
+    @Test
+    public void testRexPrefix() {
+
+        disassembler.setBits(Bits.BITS_64);
+
+        int[] instructions = {
+                0x48, 0xB8, 0xF0, 0xDE, 0xBC,
+                0x9A, 0x78, 0x56, 0x34, 0x12,
+                0x48, 0x01, 0xc3, // add rbx, rax
+        };
+
+        Instruction[] insn = disassembler.disassemble(instructions);
+
+        assertEquals(2, insn.length);
+        assertEquals("MOV RAX, 0x123456789ABCDEF0", insn[0].toString());
+        assertEquals("ADD RBX, RAX", insn[1].toString());
 
     }
 
