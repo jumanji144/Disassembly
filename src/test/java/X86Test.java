@@ -8,10 +8,12 @@ import un.darknet.disassembly.data.Instruction;
 import un.darknet.disassembly.data.Opcode;
 import un.darknet.disassembly.data.Program;
 import un.darknet.disassembly.decoding.DecoderContext;
+import un.darknet.disassembly.exception.InvalidInstructionException;
 import un.darknet.disassembly.labels.Label;
 import un.darknet.disassembly.labels.LabelScheme;
 import un.darknet.disassembly.operand.Operand;
 import un.darknet.disassembly.operand.OperandObject;
+import un.darknet.disassembly.util.Bytes;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -74,7 +76,7 @@ public class X86Test {
 
     @Test
     @Order(1)
-    public void testDecoder() throws IOException {
+    public void testDecoder() throws IOException, InvalidInstructionException {
 
         X86Decoder decoder = new X86Decoder(disassembler.getBackend());
 
@@ -120,6 +122,10 @@ public class X86Test {
                 Arguments.of("XOR", (byte) 0x31),
                 Arguments.of("CMP", (byte) 0x39));
 
+    }
+
+    private static void common(int[] instructions, String[] expected) {
+        common(Bytes.toBytes(instructions), expected);
     }
 
     private static void common(byte[] instructions, String[] expected) {
@@ -215,7 +221,7 @@ public class X86Test {
     void generalTest() {
 
         // get bytes from resource file
-        byte[] instructions = getBytesFromResource("/testprogram");
+        byte[] instructions = getBytesFromResource("/testprogram.bin");
 
         disassembler.setBits(Bits.BITS_64);
 
@@ -579,6 +585,35 @@ public class X86Test {
         assertEquals(2, insn.length);
         assertEquals("MOV RAX, 0x123456789ABCDEF0", insn[0].toString());
         assertEquals("ADD RBX, RAX", insn[1].toString());
+
+    }
+
+    @Test
+    public void testRol() {
+
+        int[] instructions = {
+                0xC0, 0x00, 0x00, // rol byte ptr [eax], 0
+                0xC0, 0xC0, 0x00, // rol al, 0
+                0xC0, 0xC9, 0x0a, // ror cl, 0x0a
+                0xC0, 0xff, 0x0a, // sar bh, 0x0a
+                0xC1, 0xC0, 0x0a, // rol eax, 0xa
+                0xC1, 0xC9, 0x0a, // ror ecx, 0xa
+                0xC1, 0xff, 0x0a, // sar edi, 0xa
+                0xC1, 0xea, 0x0a, // shr edx, 0xa
+        };
+
+        String[] expected = {
+                "ROL [AL], 0x0",
+                "ROL AL, 0x0",
+                "ROR CL, 0xA",
+                "SAR BH, 0xA",
+                "ROL EAX, 0xA",
+                "ROR ECX, 0xA",
+                "SAR EDI, 0xA",
+                "SHR EDX, 0xA"
+        };
+
+        common(instructions, expected);
 
     }
 

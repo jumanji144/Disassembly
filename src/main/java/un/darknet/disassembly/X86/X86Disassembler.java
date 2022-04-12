@@ -5,9 +5,12 @@ import un.darknet.disassembly.Bits;
 import un.darknet.disassembly.Endianness;
 import un.darknet.disassembly.PlatformDisassembler;
 import un.darknet.disassembly.data.Instruction;
+import un.darknet.disassembly.data.InstructionType;
+import un.darknet.disassembly.data.InvalidOpcode;
 import un.darknet.disassembly.data.Program;
 import un.darknet.disassembly.decoding.DecoderContext;
 import un.darknet.disassembly.exception.DisassemblerException;
+import un.darknet.disassembly.exception.InvalidInstructionException;
 import un.darknet.disassembly.labels.Label;
 import un.darknet.disassembly.labels.LabelType;
 import un.darknet.disassembly.operand.Operand;
@@ -87,12 +90,16 @@ public class X86Disassembler implements PlatformDisassembler {
 
         while (decoder.hasNext()) {
 
-            DecoderContext ctx = decoder.next(); // result of decoding
+            try {
+                DecoderContext ctx = decoder.next(); // result of decoding
 
-            if (ctx.getInstruction() == null) continue; // error occurred
+                if (ctx.getInstruction() == null) continue; // error occurred
 
-            program.addInstruction(ctx.getInstruction()); // add instruction to program
+                program.addInstruction(ctx.getInstruction()); // add instruction to program
 
+            } catch (InvalidInstructionException e) {
+                program.addInstruction(new Instruction(e.getPos(), e.getPartialOpcode(), InstructionType.OTHER));
+            }
         }
 
 

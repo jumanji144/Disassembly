@@ -100,7 +100,7 @@ public class Operations {
             "R", "R", "R", "R", "l0ri", "0ri", // CMP
             "3S", // SEGMENT  OVERRIDE DS
             "", // AAS
-            // TODO: 64-bit REX
+            // 0x40 - 0x4F (REX)
             "U", "U", "U", "U", "U", "U", "U", "U", // INC
             "U", "U", "U", "U", "U", "U", "U", "U", // DEC
             "U", "U", "U", "U", "U", "U", "U", "U", // PUSH
@@ -148,6 +148,7 @@ public class Operations {
             "", "s",
             "lMi", "lMi", "lMi", "lMi", "lMi", "lMi", "lMi", "lMi",
             "Mi", "Mi", "Mi", "Mi", "Mi", "Mi", "Mi", "Mi",
+            "4FlR", "4F0OR",
 
 
     };

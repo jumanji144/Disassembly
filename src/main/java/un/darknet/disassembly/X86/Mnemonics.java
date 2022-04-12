@@ -75,6 +75,9 @@ public class Mnemonics {
             "SCASB", new String[]{"SCASW", "SCASD", "???"},
             "MOV", "MOV", "MOV", "MOV", "MOV", "MOV", "MOV", "MOV",
             "MOV", "MOV", "MOV", "MOV", "MOV", "MOV", "MOV", "MOV",
+            new String[] {"ROL", "ROR", "RCL", "RCR", "SHL", "SHR", "SAL", "SAR"},
+            new String[] {"ROL", "ROR", "RCL", "RCR", "SHL", "SHR", "SAL", "SAR"},
+            "RET", "RET"
 
 
     };

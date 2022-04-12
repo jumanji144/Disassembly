@@ -14,9 +14,18 @@ _main:
     add rax, rbx
     mov ecx, 0x9abcdef0
 
+    mov [data], ecx
+
     ; jumps and calls
-    call func_1a
+    call func_1a    ; call to func_1a (1 byte) (0x00) (0x00) (0) (0 (in hex)) (0 (in octal)) (0 (in decimal))
 
 
 func_1a:
-  jmp +0x1
+  mov ebx, 0x1
+  ; jump 10 ahead
+  jmp func_1b
+
+func_1b:
+  mov ebx, 0x2
+
+data: db 10
